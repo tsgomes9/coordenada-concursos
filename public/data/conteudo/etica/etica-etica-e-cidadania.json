@@ -1,0 +1,41 @@
+{
+  "id": "etica-etica-e-cidadania",
+  "titulo": "Etica e cidadania",
+  "materia": "Ética",
+  "topicos": [],
+  "exercicios": [
+    {
+      "pergunta": "Sobre os princípios da administração pública expressos no caput do art. 37 da Constituição Federal, assinale a alternativa correta:",
+      "alternativas": [
+        "Legalidade, impessoalidade, moralidade, publicidade e eficiência são princípios implícitos, não escritos.",
+        "O princípio da moralidade exige apenas a boa-fé do agente público, sendo irrelevante o resultado do ato.",
+        "O princípio da eficiência foi incluído pela Emenda Constitucional nº 19/1998 e orienta a administração a buscar resultados positivos e qualidade na prestação de serviços.",
+        "Impessoalidade significa que o administrador pode agir de modo a beneficiar terceiros, desde que o faça em nome do interesse público."
+      ],
+      "correta": 2,
+      "explicacao": "A letra A está errada: os princípios são explícitos, constam no art. 37, caput, da CF.\n\nB está incorreta: a moralidade não se limita à boa-fé; exige conduta ética, honesta e coerente com o interesse público.\n\nC está correta: a EC 19/1998 inseriu a eficiência como princípio constitucional.\n\nD está errada: impessoalidade veda favorecimentos ou perseguições; o agente deve tratar a todos igualmente."
+    },
+    {
+      "pergunta": "Acerca dos direitos de cidadania e controle social, é correto afirmar que:",
+      "alternativas": [
+        "A cidadania restringe-se ao direito de votar e ser votado, não abrangendo mecanismos de participação social.",
+        "A iniciativa popular de leis, o plebiscito e o referendo são instrumentos de participação direta previstos na Constituição Federal",
+        "O controle social só pode ser exercido pelos Tribunais de Contas e pelo Ministério Público.",
+        "Os direitos sociais (saúde, educação, moradia) não integram o conceito de cidadania, pois são meras expectativas de direito."
+      ],
+      "correta": 1,
+      "explicacao": "A é falsa: cidadania abrange direitos civis, políticos e sociais, além de deveres e participação ativa.\n\nB é correta: conforme art. 14 da CF, a soberania popular é exercida também por plebiscito, referendo e iniciativa popular.\n\nC é errada: controle social é exercido por qualquer cidadão ou grupo organizado, não apenas por instituições formais.\n\nD é falsa: direitos sociais são dimensões fundamentais da cidadania (art. 6º da CF), não meras promessas."
+    }
+  ],
+  "flashcards": [
+    {
+      "frente": "Quais são os 5 princípios explícitos da administração pública no art. 37 da CF?",
+      "verso": "L I M P E\n\nLegalidade\n\nImpessoalidade\n\nMoralidade\n\nPublicidade\n\nEficiência"
+    },
+    {
+      "frente": "Quais são os três mecanismos de participação direta previstos no art. 14 da Constituição Federal?",
+      "verso": "P R I\n\nPlebiscito\n\nReferendo\n\nIniciativa popular\n\nDica: \"PRI\" de \"participação\" + \"R\" + \"I\"."
+    }
+  ],
+  "updatedAt": "2026-02-18T17:12:11.404Z"
+}

@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ética, Democracia e Cidadania · Guia Completo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #ffffff;
+            font-family: 'Segoe UI', 'Nunito', 'Quicksand', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+            color: #1e1e1e;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            scroll-behavior: smooth;
+        }
+
+        :root {
+            --laranja-principal: #f15a24;
+            --laranja-suave: #fef1ea;
+            --preto-titulo: #1f1f1f;
+            --preto-texto: #2c2c2c;
+            --branco-puro: #ffffff;
+            --cinza-claro: #f8f8f8;
+            --borda-suave: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1100px;
+            width: 100%;
+            padding: 2rem 2rem 3rem 2rem;
+        }
+
+        /* Cabeçalho */
+        .hero {
+            background: linear-gradient(145deg, var(--branco-puro) 0%, var(--laranja-suave) 100%);
+            border-radius: 48px;
+            padding: 2.8rem 2.8rem;
+            margin: 2rem 0 2.5rem 0;
+            border: 1px solid rgba(241, 90, 36, 0.15);
+            box-shadow: 0 20px 30px -10px rgba(241, 90, 36, 0.1);
+        }
+
+        .hero h1 {
+            font-size: 3rem;
+            font-weight: 800;
+            color: var(--preto-titulo);
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.6rem;
+            border-left: 10px solid var(--laranja-principal);
+            padding-left: 1.8rem;
+        }
+
+        .hero .subtitulo {
+            font-size: 1.4rem;
+            font-weight: 500;
+            color: #3d3d3d;
+            margin-left: 2.8rem;
+            margin-top: 0.5rem;
+            border-bottom: 2px dotted var(--laranja-principal);
+            display: inline-block;
+            padding-bottom: 6px;
+        }
+
+        .badge-concursos {
+            display: inline-block;
+            background-color: var(--preto-titulo);
+            color: var(--branco-puro);
+            padding: 0.3rem 1.2rem;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-left: 2.8rem;
+            margin-top: 1rem;
+            letter-spacing: 0.02rem;
+            border: 1px solid var(--laranja-principal);
+        }
+
+        /* Cards grid */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0 2.5rem 0;
+        }
+
+        .card {
+            background: var(--branco-puro);
+            border-radius: 32px;
+            padding: 2rem 1.8rem;
+            border: 1px solid var(--borda-suave);
+            transition: all 0.25s ease;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.02);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-6px);
+            border-color: var(--laranja-principal);
+            box-shadow: 0 25px 30px -12px rgba(241, 90, 36, 0.18);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 8px;
+            height: 100%;
+            background-color: var(--laranja-principal);
+            opacity: 0.7;
+        }
+
+        .card h2 {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--preto-titulo);
+            margin-bottom: 1rem;
+            margin-left: 0.2rem;
+            letter-spacing: -0.01em;
+        }
+
+        .card h3 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--laranja-principal);
+            margin-top: 1.2rem;
+            margin-bottom: 0.6rem;
+        }
+
+        .card p, .card li {
+            color: var(--preto-texto);
+            font-size: 1.1rem;
+        }
+
+        .card ul {
+            list-style: none;
+            padding-left: 0.2rem;
+        }
+
+        .card li {
+            margin-bottom: 0.7rem;
+            padding-left: 1.8rem;
+            position: relative;
+        }
+
+        .card li::before {
+            content: "▹";
+            color: var(--laranja-principal);
+            font-weight: 700;
+            position: absolute;
+            left: 0;
+        }
+
+        /* Bloco de citação */
+        .citacao-bloco {
+            background-color: var(--laranja-suave);
+            border-radius: 28px;
+            padding: 2rem 2.5rem;
+            margin: 2.5rem 0;
+            border-left: 12px solid var(--laranja-principal);
+            font-size: 1.2rem;
+        }
+
+        .citacao-bloco p {
+            font-weight: 500;
+            color: #1e1e1e;
+            margin-bottom: 1rem;
+        }
+
+        .citacao-bloco .autor {
+            font-weight: 700;
+            color: var(--laranja-principal);
+            text-align: right;
+            font-size: 1.1rem;
+        }
+
+        /* Seções de conteúdo estático (substituem as abas) */
+        .secao-conteudo {
+            background: var(--branco-puro);
+            border-radius: 38px;
+            border: 2px solid var(--laranja-principal);
+            margin: 2rem 0;
+            padding: 2.2rem 2.5rem;
+            box-shadow: 0 15px 30px -15px rgba(241,90,36,0.2);
+        }
+
+        .secao-titulo {
+            font-size: 2rem;
+            font-weight: 800;
+            color: var(--preto-titulo);
+            margin-bottom: 1.5rem;
+            border-left: 7px solid var(--laranja-principal);
+            padding-left: 1.2rem;
+        }
+
+        .secao-subtitulo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--laranja-principal);
+            margin: 1.5rem 0 1rem 0;
+        }
+
+        .lista-check {
+            list-style: none;
+        }
+        .lista-check li {
+            margin-bottom: 0.9rem;
+            padding-left: 2.2rem;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%23f15a24" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>') left center no-repeat;
+            background-size: 1.3rem;
+        }
+
+        /* Tabela de mecanismos */
+        .tabela-mecanismos {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1.5rem 0;
+            font-size: 1rem;
+            background-color: var(--cinza-claro);
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.02);
+        }
+        .tabela-mecanismos th {
+            background-color: var(--preto-titulo);
+            color: white;
+            font-weight: 700;
+            padding: 0.8rem 1rem;
+            text-align: left;
+        }
+        .tabela-mecanismos td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--borda-suave);
+            background-color: white;
+        }
+        .tabela-mecanismos tr:last-child td {
+            border-bottom: none;
+        }
+        .tabela-mecanismos td:first-child {
+            font-weight: 700;
+            color: var(--laranja-principal);
+            background-color: #fff5ef;
+        }
+
+        /* Cards de dicas */
+        .dicas-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1.8rem;
+            justify-content: space-between;
+            margin: 3rem 0;
+        }
+
+        .dica-card {
+            flex: 1;
+            min-width: 220px;
+            background: #ffffff;
+            border-radius: 30px;
+            padding: 2rem 1.5rem;
+            border: 1px solid #ececec;
+            box-shadow: 0 8px 18px -10px #ccc;
+        }
+
+        .dica-tag {
+            background: var(--laranja-principal);
+            color: black;
+            font-weight: 800;
+            padding: 0.2rem 1rem;
+            border-radius: 60px;
+            display: inline-block;
+        }
+
+        .dica-tag.escura {
+            background: var(--preto-titulo);
+            color: white;
+        }
+
+        .dica-card p {
+            margin-top: 1.2rem;
+            font-size: 1.1rem;
+        }
+
+        /* Divisa e rodapé */
+        .divisoria {
+            height: 3px;
+            background: linear-gradient(90deg, var(--laranja-principal) 30%, #ffffff 90%);
+            width: 100%;
+            margin: 2rem 0;
+        }
+
+        .footer {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            text-align: center;
+            font-size: 1rem;
+            border-top: 1px solid var(--borda-suave);
+            color: #4a4a4a;
+        }
+
+        .footer strong {
+            color: var(--laranja-principal);
+            font-weight: 800;
+        }
+
+        h1, h2, h3, h4, .botao-aba {
+            font-family: 'Nunito', 'Segoe UI', 'Quicksand', sans-serif;
+        }
+
+        p, li, .subtitulo, .badge-concursos {
+            font-family: 'Quicksand', 'Segoe UI', sans-serif;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+
+        <!-- CABEÇALHO -->
+        <div class="hero">
+            <h1>Ética, Democracia<br>e o Exercício da Cidadania</h1>
+            <div class="subtitulo">um guia completo · fundamentos, direitos e participação</div>
+            <span class="badge-concursos">ÉTICA, COMPLIANCE NA ADMINISTRAÇÃO PÚBLICA E LEGISLAÇÃO</span>
+        </div>
+
+        <!-- 1.0 PILARES FUNDAMENTAIS (cards) -->
+        <div class="cards-grid">
+            <div class="card">
+                <h2>Ética</h2>
+                <p><strong>Reflexão sobre a moral.</strong> Parte da filosofia que estuda os princípios e valores que orientam a conduta humana. Busca o bem comum, a convivência sem opressão e a harmonia social.</p>
+                <h3>objetivo</h3>
+                <ul>
+                    <li>Estabelecer bases para a vida em comunidade</li>
+                    <li>Garantir regras que promovam o bem coletivo</li>
+                    <li>Diferenciar-se da moral (enquanto prática, a ética é a reflexão)</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h2>Democracia</h2>
+                <p><strong>demo = povo · kratia = poder.</strong> Regime político no qual a soberania é exercida pelo povo. A população interfere diretamente nas decisões do Estado.</p>
+                <h3>origem</h3>
+                <ul>
+                    <li>Grega: democratia – poder do povo</li>
+                    <li>Essência: conferir poder à população</li>
+                    <li>Moldar os rumos da sociedade</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h2>Cidadania</h2>
+                <p><strong>Direitos e deveres em um Estado.</strong> Não é apenas status legal, mas a possibilidade concreta de participar ativamente da vida social e do governo.</p>
+                <h3>consequência</h3>
+                <ul>
+                    <li>Ausência de cidadania plena → marginalização</li>
+                    <li>Exclusão da tomada de decisões</li>
+                    <li>Inferioridade no grupo social</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- CITAÇÃO INTERCONEXÃO -->
+        <div class="citacao-bloco">
+            <p>“Embora distintos em suas definições, estes três conceitos — ética, democracia e cidadania — são inseparáveis na prática. A cidadania, alicerçada na ética e viabilizada pela democracia, manifesta‑se concretamente no dia a dia.”</p>
+            <div class="autor">— guia completo</div>
+        </div>
+
+        <!-- 2.0 DUAS DIMENSÕES DA CIDADANIA -->
+        <div style="display: flex; flex-wrap: wrap; gap: 2rem; margin: 2.5rem 0;">
+            <div style="flex: 1 1 300px; background: var(--branco-puro); border-radius: 32px; padding: 2rem; border: 1px solid var(--borda-suave);">
+                <h3 style="font-size: 2rem; font-weight: 800; color: var(--preto-titulo); margin-bottom: 1rem;">📋 Direitos formais</h3>
+                <p><strong>Cidadania plena = três categorias:</strong></p>
+                <ul class="lista-check">
+                    <li><strong>Civis:</strong> liberdades individuais (opinião, crença, locomoção)</li>
+                    <li><strong>Políticos:</strong> votar e ser votado</li>
+                    <li><strong>Sociais:</strong> trabalho, alimentação, moradia, saúde, educação</li>
+                </ul>
+            </div>
+            <div style="flex: 1 1 300px; background: var(--branco-puro); border-radius: 32px; padding: 2rem; border: 1px solid var(--borda-suave);">
+                <h3 style="font-size: 2rem; font-weight: 800; color: var(--preto-titulo); margin-bottom: 1rem;">⚡ Ações diárias</h3>
+                <p><strong>Exercício ético da cidadania:</strong></p>
+                <ul class="lista-check">
+                    <li>Respeito ao próximo e bens públicos (ceder lugar, não jogar lixo, não depredar)</li>
+                    <li>Responsabilidade profissional (servidor zeloso)</li>
+                    <li>Solidariedade e consciência social</li>
+                    <li>Defesa de direitos (expressar ideias, não discriminação)</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- SEÇÃO 3.0: MODELOS DEMOCRÁTICOS (estático) -->
+        <div class="secao-conteudo">
+            <div class="secao-titulo">📌 Modelos democráticos</div>
+            <p><strong>Democracia direta:</strong> todos os cidadãos participam diretamente das decisões políticas, sem intermediários. Deliberações coletivas com base na vontade da maioria.</p>
+            <p><strong>Democracia indireta (representativa):</strong> cidadãos elegem representantes (deputados, senadores, vereadores) que tomam decisões em seu nome, sempre em prol do interesse público.</p>
+            <p><strong>Democracia semidireta (adotada no Brasil):</strong> fusão dos dois anteriores. Existem representantes eleitos, mas o povo mantém o direito de participar diretamente de decisões pontuais por meio de instrumentos específicos (plebiscito, referendo, iniciativa popular).</p>
+            <p>A Constituição de 1988 consagrou o modelo semidireta, equilibrando delegação e soberania popular.</p>
+        </div>
+
+        <!-- SEÇÃO: MECANISMOS DE PARTICIPAÇÃO (estático) -->
+        <div class="secao-conteudo">
+            <div class="secao-titulo">🗳️ Instrumentos da soberania popular (CF/88)</div>
+            <table class="tabela-mecanismos">
+                <tr><th>Mecanismo</th><th>Descrição</th></tr>
+                <tr><td>Plebiscito</td><td>Consulta <strong>prévia</strong> à criação da lei; povo opina antes de os legisladores decidirem.</td></tr>
+                <tr><td>Referendo</td><td>Consulta <strong>posterior</strong> à criação da lei; povo aprova ou rejeita a norma já existente.</td></tr>
+                <tr><td>Iniciativa popular</td><td>Cidadãos apresentam projeto de lei à Câmara, com assinatura de no mínimo 1% do eleitorado nacional, distribuído por pelo menos cinco estados (0,3% em cada).</td></tr>
+            </table>
+            <p style="margin-top: 1rem;">Esses mecanismos criam um imperativo ético para a participação cidadã, conectando ação individual e destino coletivo.</p>
+        </div>
+
+        <!-- SEÇÃO: CONTROLE SOCIAL E PRINCÍPIOS (estático) -->
+        <div class="secao-conteudo">
+            <div class="secao-titulo">🛡️ Ética como alicerce da democracia</div>
+            
+            <div class="secao-subtitulo">Controle social</div>
+            <p>A Constituição de 1988 empoderou a população com conselhos de políticas públicas, ouvidorias, audiências públicas e orçamentos participativos. É dever ético do cidadão acompanhar representantes, exigir conduta adequada e denunciar corrupção.</p>
+            
+            <div class="secao-subtitulo">Princípios éticos da gestão pública</div>
+            <ul class="lista-check">
+                <li><strong>Legalidade:</strong> agir conforme a lei.</li>
+                <li><strong>Impessoalidade:</strong> interesse público, sem favorecimentos.</li>
+                <li><strong>Moralidade:</strong> honestidade, integridade.</li>
+                <li><strong>Publicidade:</strong> transparência total.</li>
+                <li><strong>Eficiência:</strong> qualidade, presteza, otimização de recursos.</li>
+            </ul>
+        </div>
+
+        <!-- SEÇÃO 4.0 e 5.0 (Continuação e Conclusão) -->
+        <div style="background: var(--laranja-suave); border-radius: 32px; padding: 2.5rem; margin: 2.5rem 0;">
+            <h3 style="font-size: 2rem; font-weight: 800; color: var(--preto-titulo); margin-bottom: 1rem;">⚖️ A conexão indispensável</h3>
+            <p style="font-size: 1.2rem;">Sem ética, as estruturas da cidadania e da democracia tornam-se meras formalidades. A ética transforma o direito de participar no <strong>dever de buscar o bem comum</strong>. O conceito de "justiça participativa" une ética e democracia: cada ação individual impacta a sociedade.</p>
+            
+            <h3 style="font-size: 2rem; font-weight: 800; color: var(--preto-titulo); margin: 2rem 0 1rem;">🏛️ Cidadania como ação contínua</h3>
+            <p style="font-size: 1.2rem;">A cidadania é muito mais do que um conjunto formal de direitos e deveres; é um exercício ético contínuo e a expressão mais concreta da democracia. Ela se constrói tanto nos grandes atos políticos quanto nos pequenos gestos do dia a dia, que, somados, definem o caráter de uma nação.</p>
+            <p style="font-size: 1.2rem; margin-top: 1rem;">Cada ação individual, desde o voto consciente e a fiscalização dos governantes até o respeito às regras de convivência e o cuidado com os bens públicos, contribui diretamente para a construção de uma sociedade mais justa, ética e verdadeiramente democrática. A saúde de uma democracia não se mede apenas pela robustez de suas leis, mas pela consciência ética de seus cidadãos. Os direitos do cidadão aumentam na mesma proporção de seus deveres e de sua responsabilidade perante a coletividade.</p>
+        </div>
+
+        <!-- DICAS RÁPIDAS -->
+        <div class="dicas-grid">
+            <div class="dica-card">
+                <span class="dica-tag">dica 1</span>
+                <p><strong>Ética x Moral:</strong> ética é a reflexão filosófica; moral é o conjunto de práticas sociais.</p>
+            </div>
+            <div class="dica-card">
+                <span class="dica-tag escura">dica 2</span>
+                <p><strong>Democracia semidireta:</strong> representantes + plebiscito, referendo e iniciativa popular.</p>
+            </div>
+            <div class="dica-card">
+                <span class="dica-tag">dica 3</span>
+                <p><strong>Controle social:</strong> use conselhos, ouvidorias, audiências públicas. É dever ético.</p>
+            </div>
+        </div>
+
+        <div class="divisoria"></div>
+
+        <!-- RODAPÉ -->
+        <div class="footer">
+            <p>© guia completo · ética, democracia e cidadania <strong>fundamentos para concursos e vida pública</strong></p>
+            
+        </div>
+    </div>
+</body>
+</html>

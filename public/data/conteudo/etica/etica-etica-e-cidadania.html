@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ética e Cidadania para Concursos</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background-color: #ffffff; /* branco base */
+            font-family: 'Segoe UI', 'Nunito', 'Quicksand', system-ui, -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+            color: #1e1e1e; /* preto suave */
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            scroll-behavior: smooth;
+        }
+
+        /* cores e identidade visual: laranja, branco, preto */
+        :root {
+            --laranja-principal: #f15a24; /* laranja vibrante, porém elegante */
+            --laranja-suave: #fef1ea; /* fundo com tom de laranja bem clarinho */
+            --preto-titulo: #1f1f1f;
+            --preto-texto: #2c2c2c;
+            --branco-puro: #ffffff;
+            --cinza-claro: #f8f8f8;
+            --borda-suave: #e0e0e0;
+        }
+
+        .container {
+            max-width: 1100px;
+            width: 100%;
+            padding: 2rem 2rem 3rem 2rem;
+        }
+
+        /* cabeçalho com tom laranja e preto */
+        .hero {
+            background: linear-gradient(145deg, var(--branco-puro) 0%, var(--laranja-suave) 100%);
+            border-radius: 48px 48px 48px 48px;
+            padding: 2.8rem 2.8rem;
+            margin: 2rem 0 2.5rem 0;
+            border: 1px solid rgba(241, 90, 36, 0.15);
+            box-shadow: 0 20px 30px -10px rgba(241, 90, 36, 0.1);
+        }
+
+        .hero h1 {
+            font-size: 3.2rem;
+            font-weight: 800; /* negrito forte */
+            color: var(--preto-titulo);
+            line-height: 1.2;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.6rem;
+            border-left: 10px solid var(--laranja-principal);
+            padding-left: 1.8rem;
+        }
+
+        .hero .subtitulo {
+            font-size: 1.4rem;
+            font-weight: 500;
+            color: #3d3d3d;
+            margin-left: 2.8rem;
+            margin-top: 0.5rem;
+            border-bottom: 2px dotted var(--laranja-principal);
+            display: inline-block;
+            padding-bottom: 6px;
+        }
+
+        .badge-concursos {
+            display: inline-block;
+            background-color: var(--preto-titulo);
+            color: var(--branco-puro);
+            padding: 0.3rem 1.2rem;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-left: 2.8rem;
+            margin-top: 1rem;
+            letter-spacing: 0.02rem;
+            border: 1px solid var(--laranja-principal);
+        }
+
+        /* cartões didáticos */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0 2.5rem 0;
+        }
+
+        .card {
+            background: var(--branco-puro);
+            border-radius: 32px;
+            padding: 2rem 1.8rem;
+            border: 1px solid var(--borda-suave);
+            transition: all 0.25s ease;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.02);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-6px);
+            border-color: var(--laranja-principal);
+            box-shadow: 0 25px 30px -12px rgba(241, 90, 36, 0.18);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 8px;
+            height: 100%;
+            background-color: var(--laranja-principal);
+            opacity: 0.7;
+        }
+
+        .card h2 {
+            font-size: 2rem;
+            font-weight: 800; /* negrito forte */
+            color: var(--preto-titulo);
+            margin-bottom: 1rem;
+            margin-left: 0.2rem;
+            letter-spacing: -0.01em;
+        }
+
+        .card h3 {
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--laranja-principal);
+            margin-top: 1.2rem;
+            margin-bottom: 0.6rem;
+        }
+
+        .card p, .card li {
+            color: var(--preto-texto);
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
+
+        .card ul {
+            list-style: none;
+            padding-left: 0.2rem;
+        }
+
+        .card li {
+            margin-bottom: 0.7rem;
+            padding-left: 1.8rem;
+            position: relative;
+        }
+
+        .card li::before {
+            content: "▹";
+            color: var(--laranja-principal);
+            font-weight: 700;
+            position: absolute;
+            left: 0;
+        }
+
+        /* blocos de citação / destaque laranja suave */
+        .destaque-cidadao {
+            background-color: var(--laranja-suave);
+            border-radius: 28px;
+            padding: 2rem 2.5rem;
+            margin: 2.5rem 0;
+            border-left: 12px solid var(--laranja-principal);
+            font-size: 1.2rem;
+        }
+
+        .destaque-cidadao p {
+            font-weight: 500;
+            color: #1e1e1e;
+            margin-bottom: 1rem;
+        }
+
+        .destaque-cidadao .autor {
+            font-weight: 700;
+            color: var(--laranja-principal);
+            text-align: right;
+            font-size: 1.1rem;
+        }
+
+        /* seção interativa - abas conceituais */
+        .interativo-container {
+            background: var(--branco-puro);
+            border-radius: 38px;
+            border: 2px solid var(--laranja-principal);
+            margin: 3rem 0 2rem 0;
+            overflow: hidden;
+            box-shadow: 0 15px 30px -15px rgba(241,90,36,0.3);
+        }
+
+        .botoes-abas {
+            display: flex;
+            background-color: var(--preto-titulo);
+        }
+
+        .botao-aba {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: #dddddd;
+            font-size: 1.3rem;
+            font-weight: 600;
+            padding: 1.2rem 0.5rem;
+            cursor: pointer;
+            transition: 0.2s;
+            border-bottom: 4px solid transparent;
+            font-family: inherit;
+            letter-spacing: 0.3px;
+        }
+
+        .botao-aba.ativo {
+            color: var(--laranja-principal);
+            border-bottom: 4px solid var(--laranja-principal);
+            background-color: rgba(255,255,255,0.02);
+            font-weight: 800;
+        }
+
+        .conteudos-abas {
+            padding: 2.2rem 2.5rem;
+            background-color: var(--branco-puro);
+            min-height: 200px;
+        }
+
+        .aba-painel {
+            display: none;
+            font-size: 1.15rem;
+            color: #2b2b2b;
+        }
+
+        .aba-painel.ativo {
+            display: block;
+        }
+
+        .aba-painel h4 {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--preto-titulo);
+            margin-bottom: 1.2rem;
+            border-left: 7px solid var(--laranja-principal);
+            padding-left: 1.2rem;
+        }
+
+        .aba-painel p {
+            margin-bottom: 1rem;
+        }
+
+        .lista-check {
+            list-style: none;
+        }
+        .lista-check li {
+            margin-bottom: 0.9rem;
+            padding-left: 2.2rem;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="%23f15a24" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>') left center no-repeat;
+            background-size: 1.3rem;
+        }
+
+        /* linha divisória com laranja */
+        .divisoria {
+            height: 3px;
+            background: linear-gradient(90deg, var(--laranja-principal) 30%, #ffffff 90%);
+            width: 100%;
+            margin: 2rem 0;
+        }
+
+        /* rodapé */
+        .footer {
+            margin-top: 3rem;
+            padding-top: 2rem;
+            text-align: center;
+            font-size: 1rem;
+            border-top: 1px solid var(--borda-suave);
+            color: #4a4a4a;
+        }
+
+        .footer strong {
+            color: var(--laranja-principal);
+            font-weight: 800;
+        }
+
+        /* tipografia arredondada e bem legível */
+        h1, h2, h3, h4, .botao-aba {
+            font-family: 'Nunito', 'Segoe UI', 'Quicksand', sans-serif;
+        }
+
+        p, li, .subtitulo, .badge-concursos {
+            font-family: 'Quicksand', 'Segoe UI', sans-serif;
+        }
+
+        /* botões e elementos pequenos */
+        .btn-arredondado {
+            background-color: var(--preto-titulo);
+            color: white;
+            border: none;
+            padding: 0.8rem 2rem;
+            border-radius: 60px;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: 0.2s;
+            border: 1px solid var(--laranja-principal);
+        }
+
+        .btn-arredondado:hover {
+            background-color: var(--laranja-principal);
+            color: black;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- cabeçalho elegante -->
+        <div class="hero">
+            <h1>Ética + Cidadania</h1>
+            <div class="subtitulo">para concursos públicos · teoria e aplicação</div>
+           
+        </div>
+
+        <!-- cards resumo conceitual -->
+        <div class="cards-grid">
+            <div class="card">
+                <h2>Ética</h2>
+                <p><strong>Conceito fundamental:</strong> conjunto de princípios morais que orientam a conduta humana no ambiente público e privado.</p>
+                <h3>para concursos</h3>
+                <ul>
+                    <li>Distinção entre ética, moral e direito</li>
+                    <li>Ética no serviço público (deveres, virtudes)</li>
+                    <li>Princípios da administração pública: legalidade, impessoalidade, moralidade, publicidade e eficiência</li>
+                    <li>Códigos de ética profissional</li>
+                </ul>
+            </div>
+            <div class="card">
+                <h2>Cidadania</h2>
+                <p><strong>Conceito essencial:</strong> exercício dos direitos e deveres civis, políticos e sociais estabelecidos pela Constituição.</p>
+                <h3>para provas</h3>
+                <ul>
+                    <li>Direitos fundamentais (art. 5º da CF)</li>
+                    <li>Participação popular: plebiscito, referendo, iniciativa popular</li>
+                    <li>Responsabilidade social e fiscal</li>
+                    <li>Controle social da administração</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- citação forte (sem emoji) -->
+        <div class="destaque-cidadao">
+            <p>“A ética é o alicerce da cidadania: sem conduta íntegra, os direitos perdem sentido e os deveres são negligenciados. Para o concurseiro, dominar esses temas é demonstrar compreensão do Estado Democrático de Direito.”</p>
+            <div class="autor">— abordagem contemporânea para carreiras públicas</div>
+        </div>
+
+        <!-- BLOCO INTERATIVO: abas com detalhamento para concursos -->
+        <div class="interativo-container" id="interativo">
+            <div class="botoes-abas">
+                <button class="botao-aba ativo" id="aba1btn">Ética aplicada</button>
+                <button class="botao-aba" id="aba2btn">Cidadania ativa</button>
+                <button class="botao-aba" id="aba3btn">Questões típicas</button>
+            </div>
+            <div class="conteudos-abas">
+                <!-- painel 1 -->
+                <div class="aba-painel ativo" id="painel1">
+                    <h4>Ética no serviço público</h4>
+                    <p>Princípios que mais caem em concursos (Decreto nº 1.171/1994 e CF):</p>
+                    <ul class="lista-check">
+                        <li><strong>Legalidade:</strong> só fazer o que a lei permite.</li>
+                        <li><strong>Impessoalidade:</strong> tratar a todos sem discriminação.</li>
+                        <li><strong>Moralidade:</strong> agir com boa-fé e honestidade.</li>
+                        <li><strong>Publicidade:</strong> transparência nos atos.</li>
+                        <li><strong>Eficiência:</strong> qualidade e produtividade.</li>
+                    </ul>
+                    <p style="margin-top: 1.2rem;">Além disso, estude os códigos de ética dos órgãos: normalmente exigem conduta compatível com a dignidade da função.</p>
+                </div>
+                <!-- painel 2 -->
+                <div class="aba-painel" id="painel2">
+                    <h4>Cidadania: direitos e deveres</h4>
+                    <p>A cidadania vai além do voto. Envolve:</p>
+                    <ul class="lista-check">
+                        <li><strong>Direitos civis:</strong> liberdade, propriedade, segurança.</li>
+                        <li><strong>Direitos sociais:</strong> educação, saúde, trabalho.</li>
+                        <li><strong>Deveres:</strong> votar conscientemente, fiscalizar o poder público, respeitar o próximo.</li>
+                        <li><strong>Mecanismos de participação:</strong> audiências públicas, conselhos gestores, ouvidorias.</li>
+                    </ul>
+                </div>
+                <!-- painel 3 -->
+                <div class="aba-painel" id="painel3">
+                    <h4>Como a banca examina</h4>
+                    <p>Questões recorrentes sobre ética e cidadania:</p>
+                    <ul class="lista-check">
+                        <li>Diferença entre ética e moral (teorias de Kant, Mill, etc.)</li>
+                        <li>Casos concretos de conflitos éticos no trabalho público</li>
+                        <li>Princípios constitucionais sensíveis à cidadania</li>
+                        <li>Legislação específica: Lei de Improbidade Administrativa (Lei 8.429/92)</li>
+                        <li>Participação social e orçamento participativo</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- dicas extras em formato elegante (laranja e preto) -->
+        <div style="display: flex; flex-wrap: wrap; gap: 1.8rem; justify-content: space-between; margin: 3rem 0;">
+            <div style="flex: 1; min-width: 220px; background: #ffffff; border-radius: 30px; padding: 2rem 1.5rem; border: 1px solid #ececec; box-shadow: 0 8px 18px -10px #ccc;">
+                <span style="background: var(--laranja-principal); color: black; font-weight: 800; padding: 0.2rem 1rem; border-radius: 60px;">dica 1</span>
+                <p style="margin-top: 1.2rem; font-size: 1.1rem;"><strong>Lei 8.429/92</strong> (improbidade administrativa) é campeã em questões. Foque nos atos que violam princípios da administração.</p>
+            </div>
+            <div style="flex: 1; min-width: 220px; background: #ffffff; border-radius: 30px; padding: 2rem 1.5rem; border: 1px solid #ececec;">
+                <span style="background: var(--preto-titulo); color: white; font-weight: 800; padding: 0.2rem 1rem; border-radius: 60px;">dica 2</span>
+                <p style="margin-top: 1.2rem; font-size: 1.1rem;"><strong>Conceitos de cidadania:</strong> Marshall (direitos civis, políticos, sociais) e visão contemporânea de cidadania fiscal.</p>
+            </div>
+            <div style="flex: 1; min-width: 220px; background: #ffffff; border-radius: 30px; padding: 2rem 1.5rem; border: 1px solid #ececec;">
+                <span style="background: var(--laranja-principal); color: black; font-weight: 800; padding: 0.2rem 1rem; border-radius: 60px;">dica 3</span>
+                <p style="margin-top: 1.2rem; font-size: 1.1rem;"><strong>Ética x Moral:</strong> moral é prática social, ética é reflexão filosófica. Em provas, prevalece o estudo dos códigos.</p>
+            </div>
+        </div>
+
+        <!-- divisor com identidade visual -->
+        <div class="divisoria"></div>
+
+        <!-- rodapé com chamado para estudo -->
+        <div class="footer">
+            <p>© estudo dirigido · ética e cidadania para concursos <strong>#rumoàposse</strong></p>
+            <p style="font-size: 0.95rem; margin-top: 0.7rem;">conteúdo produzido com identidade visual laranja, branco e preto · letras arredondadas e negrito forte</p>
+        </div>
+    </div>
+
+    <!-- pequeno script para abas interativas (sem emojis, só funcionalidade) -->
+    <script>
+        (function() {
+            const btn1 = document.getElementById('aba1btn');
+            const btn2 = document.getElementById('aba2btn');
+            const btn3 = document.getElementById('aba3btn');
+            const painel1 = document.getElementById('painel1');
+            const painel2 = document.getElementById('painel2');
+            const painel3 = document.getElementById('painel3');
+
+            function desativarTodos() {
+                [btn1, btn2, btn3].forEach(b => b.classList.remove('ativo'));
+                [painel1, painel2, painel3].forEach(p => p.classList.remove('ativo'));
+            }
+
+            btn1.addEventListener('click', function() {
+                desativarTodos();
+                btn1.classList.add('ativo');
+                painel1.classList.add('ativo');
+            });
+
+            btn2.addEventListener('click', function() {
+                desativarTodos();
+                btn2.classList.add('ativo');
+                painel2.classList.add('ativo');
+            });
+
+            btn3.addEventListener('click', function() {
+                desativarTodos();
+                btn3.classList.add('ativo');
+                painel3.classList.add('ativo');
+            });
+        })();
+    </script>
+</body>
+</html>

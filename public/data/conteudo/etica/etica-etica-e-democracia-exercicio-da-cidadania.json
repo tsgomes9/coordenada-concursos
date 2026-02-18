@@ -1,0 +1,86 @@
+{
+  "id": "etica-etica-e-democracia-exercicio-da-cidadania",
+  "titulo": "Ética e democracia: exercício da cidadania",
+  "materia": "Ética",
+  "topicos": [],
+  "exercicios": [
+    {
+      "pergunta": "Ética é definida como:",
+      "alternativas": [
+        "O conjunto de leis que regulam a vida em sociedade e cujo descumprimento gera penalidades.",
+        "A prática dos direitos e deveres de um indivíduo dentro de um Estado, com foco na participação política.",
+        "A parte da filosofia que estuda a moral, refletindo sobre os princípios e valores que orientam o comportamento humano para o bem comum.",
+        "Um regime político no qual a soberania é exercida pelo povo, que elege seus representantes."
+      ],
+      "correta": 2,
+      "explicacao": "Alternativa a) INCORRETA. Esta definição se refere ao conceito de Direito (sistema de normas coercitivas), e não ao de ética, que é uma reflexão filosófica.\n\nAlternativa b) INCORRETA. Esta é a definição de cidadania apresentada no texto, que envolve direitos e deveres, mas não é o conceito de ética.\n\nAlternativa c) CORRETA. A definição está em perfeita consonância com o item \"1.0 Os Pilares Fundamentais\", que afirma: \"A ética é a parte da filosofia que se dedica ao estudo da moral. Ela consiste em uma reflexão profunda sobre os princípios e valores que mediam o comportamento humano. Seu objetivo é orientar a vida em comunidade, estabelecendo as bases para uma convivência que vise ao bem comum\".\n\nAlternativa d) INCORRETA. Esta é a definição de democracia, conforme a etimologia e o conceito apresentado no texto."
+    },
+    {
+      "pergunta": "Sobre as duas dimensões da cidadania abordadas no texto, é correto afirmar que:",
+      "alternativas": [
+        "A cidadania se resume ao conjunto de direitos formais garantidos por lei, como o direito ao voto e à propriedade.",
+        "A cidadania plena se manifesta apenas através de grandes atos políticos, como a participação em eleições e manifestações.",
+        "A cidadania possui uma dupla natureza: os direitos formalmente garantidos e as práticas éticas do cotidiano, como o respeito aos bens públicos e a solidariedade.",
+        "A cidadania é um status legal que independe das ações diárias dos indivíduos, sendo definida exclusivamente pela posse de documentos."
+      ],
+      "correta": 2,
+      "explicacao": "Alternativa a) INCORRETA. O texto afirma que a cidadania \"transcende a mera posse de documentos ou o direito ao voto\", não se resumindo aos direitos formais.\n\nAlternativa b) INCORRETA. O texto defende que a verdadeira cidadania se manifesta em comportamentos diários, muitas vezes sutis, e não apenas em grandes atos políticos.\n\nAlternativa c) CORRETA. A seção \"2.0 As Duas Dimensões da Cidadania\" introduz exatamente esta ideia: uma dimensão formal (direitos civis, políticos e sociais) e uma dimensão prática (ações éticas cotidianas como respeito, responsabilidade profissional e solidariedade).\n\nAlternativa d) INCORRETA. O texto é enfático ao dizer que a cidadania \"não se trata apenas de um status legal, mas da possibilidade concreta de participar ativamente da vida social e do governo\".\n\n"
+    },
+    {
+      "pergunta": "O Brasil adota o modelo de democracia semidireta. Isso significa que, no país:",
+      "alternativas": [
+        "O povo exerce o poder exclusivamente por meio de representantes eleitos, sem possibilidade de participação direta em decisões pontuais.",
+        "odos os cidadãos se reúnem em assembleias para deliberar e tomar decisões sobre todas as políticas públicas.",
+        "O poder é exercido por um único líder eleito, que concentra as decisões sobre os rumos da nação.",
+        "Embora existam representantes eleitos, a Constituição prevê mecanismos para a participação direta do povo em decisões específicas, como o plebiscito e o referendo."
+      ],
+      "correta": 3,
+      "explicacao": "Alternativa a) INCORRETA. Esta é a definição de democracia representativa pura. O Brasil a complementa com instrumentos de participação direta, caracterizando a semidireta.\n\nAlternativa b) INCORRETA. Esta é a definição de democracia direta, modelo puro que não é o adotado pelo Brasil, pois aqui também elegemos representantes.\n\nAlternativa c) INCORRETA. Esta descrição se assemelha a regimes autoritários ou presidencialismos sem mecanismos de participação popular ampla, o que não condiz com a democracia semidireta brasileira.\n\nAlternativa d) CORRETA. Conforme a seção \"3.0 A Democracia em Prática\", o modelo semidireta \"representa uma fusão dos dois anteriores. Nele, embora existam representantes eleitos para as funções legislativas e executivas, o povo mantém o direito de participar diretamente de decisões pontuais por meio de instrumentos específicos. Este é o modelo adotado no Brasil.\""
+    },
+    {
+      "pergunta": "A Constituição Federal de 1988 estabeleceu instrumentos para o exercício direto da soberania popular. Considerando as definições apresentadas no texto, relacione corretamente o mecanismo à sua descrição:",
+      "alternativas": [
+        "Plebiscito é a consulta ao povo para aprovar ou rejeitar uma lei já existente, enquanto o referendo é a consulta prévia à criação do ato legislativo.",
+        "A iniciativa popular permite que cidadãos apresentem projetos de lei, desde que cumpram os requisitos de, no mínimo, 1% do eleitorado nacional, distribuído por pelo menos cinco estados.",
+        " Plebiscito e referendo são sinônimos e representam a mesma ferramenta de consulta popular, podendo ser usados em qualquer momento do processo legislativo.",
+        "A iniciativa popular é um mecanismo pelo qual o presidente da República pode convocar a população para opinar sobre uma medida provisória."
+      ],
+      "correta": 1,
+      "explicacao": ""
+    },
+    {
+      "pergunta": "Segundo o texto, qual é a função da ética como \"alicerce da vida democrática\"?",
+      "alternativas": [
+        "A ética serve para engrandecer a figura dos governantes, que devem ser vistos como exemplos morais a serem seguidos pela população.",
+        "A ética é um conjunto de regras formais que substitui a necessidade de leis e mecanismos de participação, tornando a democracia mais simples.",
+        "A ética é o componente que transforma o simples direito de participar no dever ético de buscar o bem comum, e se expressa em princípios como moralidade, impessoalidade e publicidade na gestão pública.",
+        "A ética na democracia tem como principal função garantir a eficiência econômica do Estado, reduzindo gastos e aumentando a produtividade."
+      ],
+      "correta": 0,
+      "explicacao": ""
+    }
+  ],
+  "flashcards": [
+    {
+      "frente": "Qual é a diferença fundamental entre Ética e Moral, de acordo com o guia?",
+      "verso": "A ética é a reflexão filosófica sobre a moral. Enquanto a moral é o conjunto de práticas, costumes e regras de uma sociedade, a ética é o estudo crítico que analisa e fundamenta esses princípios e valores que orientam o comportamento humano em busca do bem comum."
+    },
+    {
+      "frente": "Quais são as três categorias de direitos que compõem a cidadania plena e o que cada uma garante?",
+      "verso": "Direitos Civis: Garantem as liberdades individuais (expressão, crença, locomoção).\n\nDireitos Políticos: Garantem a participação na vida política (votar e ser votado).\n\nDireitos Sociais: Garantem as condições básicas para uma vida digna (trabalho, saúde, educação, moradia)."
+    },
+    {
+      "frente": "Explique a diferença entre Plebiscito e Referendo, os dois mecanismos de consulta popular.",
+      "verso": "A diferença está no momento da consulta em relação à criação da lei:\n\nPlebiscito: É uma consulta prévia. O povo opina sobre o assunto antes de a lei ou ato administrativo ser criado.\n\nReferendo: É uma consulta posterior. O povo é chamado para aprovar ou rejeitar uma lei depois que ela já foi criada pelo poder legislativo."
+    },
+    {
+      "frente": "Quais são os cinco princípios éticos que devem reger a gestão pública, conforme o guia?",
+      "verso": "Legalidade: Agir somente conforme a lei.\n\nImpessoalidade: Tratar a todos sem favorecimentos, sempre em nome do interesse público.\n\nMoralidade: Agir com honestidade, integridade e boa-fé.\n\nPublicidade: Garantir a transparência total dos atos públicos.\n\nEficiência: Buscar qualidade, presteza e a melhor utilização dos recursos públicos.\n\n"
+    },
+    {
+      "frente": "O que é \"controle social\" e quais ferramentas a Constituição de 1988 oferece para exercê-lo?",
+      "verso": "Controle social é o dever ético do cidadão de acompanhar e fiscalizar a ação do Estado. As ferramentas criadas pela Constituição de 1988 incluem:\n\nConselhos de políticas públicas\n\nOuvidorias\n\nAudiências públicas\n\nOrçamentos participativos"
+    }
+  ],
+  "updatedAt": "2026-02-18T17:19:01.346Z"
+}
