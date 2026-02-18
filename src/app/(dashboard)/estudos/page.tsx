@@ -224,7 +224,7 @@ export default function EstudosPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50">
       {/* Header com gradiente */}
-      <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white">
+      <div className="bg-gradient-to-r from-black to-orange-900 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
@@ -574,7 +574,7 @@ export default function EstudosPage() {
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.8 }}
-              className="bg-gradient-to-br from-purple-500 to-purple-600 rounded-2xl p-8 text-white shadow-xl"
+              className="bg-gradient-to-br from-purple-700 to-purple-900 rounded-2xl p-8 text-white shadow-xl"
             >
               <h3 className="text-xl font-black mb-3">💡 Dica do dia</h3>
               <p className="text-purple-100 text-lg leading-relaxed">

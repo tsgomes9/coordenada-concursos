@@ -517,22 +517,24 @@ export default function ConcursosPage() {
 
   return (
     <div className="space-y-8">
-      <div className="relative">
-        <div className="inline-flex items-center gap-2 bg-orange-100 text-orange-600 px-4 py-2 rounded-full mb-4">
-          <Sparkles className="w-4 h-4" />
-          <span className="text-sm font-medium">
-            {concursos.length} concursos disponíveis
-          </span>
+      <div className="bg-gradient-to-r from-black to-orange-900 text-white p-6">
+        <div className="relative">
+          <div className="inline-flex items-center gap-2 bg-orange-600 text- px-4 py-2 rounded-full mb-4">
+            <Sparkles className="w-4 h-4" />
+            <span className="text-sm font-medium">
+              {concursos.length} concursos disponíveis
+            </span>
+          </div>
+
+          <h1 className="text-5xl md:text-6xl font-black text-white mb-4 leading-tight">
+            Concursos públicos
+          </h1>
+
+          <p className="text-lg text-gray-100 max-w-2xl">
+            Explore todos os concursos disponíveis na plataforma e prepare-se
+            para sua aprovação com o melhor conteúdo
+          </p>
         </div>
-
-        <h1 className="text-5xl md:text-6xl font-black text-gray-900 mb-4 leading-tight">
-          Concursos públicos
-        </h1>
-
-        <p className="text-lg text-gray-600 max-w-2xl">
-          Explore todos os concursos disponíveis na plataforma e prepare-se para
-          sua aprovação com o melhor conteúdo
-        </p>
       </div>
 
       {/* Métricas - Cards horizontais */}
