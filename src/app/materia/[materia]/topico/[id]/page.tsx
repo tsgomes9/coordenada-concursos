@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Flashcard } from "@/components/conteudo/Flashcard";
 import { Exercicio } from "@/components/conteudo/Exercicio";
@@ -14,8 +14,10 @@ interface Metadados {
   id: string;
   titulo: string;
   materia: string;
-  isPreview?: boolean;
+  materiaId?: string;
+  materiaSlug?: string;
   concursoId?: string;
+  isPreview?: boolean;
   flashcards?: any[];
   exercicios?: any[];
   tempoEstimado?: number;
@@ -23,8 +25,10 @@ interface Metadados {
 
 export default function TopicoPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const materia = params.materia as string;
   const id = params.id as string;
+  const concursoId = searchParams.get("concurso");
 
   const [html, setHtml] = useState<string>("");
   const [metadados, setMetadados] = useState<Metadados | null>(null);
@@ -32,53 +36,15 @@ export default function TopicoPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [tempoInicio, setTempoInicio] = useState<number>(Date.now());
 
-  // 🔥 HOOK DE ACESSO
   const { nivelAcesso, loading: loadingAcesso } = useAcesso();
-
-  // 🔥 HOOK DE PROGRESSO
   const { progresso, iniciarTopico, atualizarProgresso, responderQuestao } =
     useProgresso();
-
-  // Registrar início do tópico
-  useEffect(() => {
-    if (metadados?.concursoId) {
-      iniciarTopico(id, metadados.concursoId);
-    }
-  }, [id, metadados?.concursoId, iniciarTopico]);
-
-  // Calcular tempo gasto
-  useEffect(() => {
-    const interval = setInterval(() => {
-      // A cada 30 segundos, atualizar tempo gasto
-      if (progresso[id]?.status === "em_andamento") {
-        const tempoDecorrido = Math.floor((Date.now() - tempoInicio) / 60000); // minutos
-        if (tempoDecorrido > 0) {
-          atualizarProgresso(id, progresso[id].progresso, tempoDecorrido);
-          setTempoInicio(Date.now());
-        }
-      }
-    }, 30000);
-
-    return () => clearInterval(interval);
-  }, [id, progresso, tempoInicio, atualizarProgresso]);
-
-  // Marcar como concluído
-  const marcarConcluido = async () => {
-    const tempoTotal = Math.floor((Date.now() - tempoInicio) / 60000);
-    await atualizarProgresso(id, 100, tempoTotal);
-  };
-
-  // Handler para responder questão
-  const handleResponderQuestao = (acertou: boolean, tempo: number) => {
-    responderQuestao(id, acertou, tempo);
-  };
 
   useEffect(() => {
     async function carregarConteudo() {
       try {
-        console.log("📥 Carregando:", { materia, id });
+        console.log("📥 Carregando:", { materia, id, concursoId });
 
-        // CARREGAR HTML
         const htmlRes = await fetch(`/data/conteudo/${materia}/${id}.html`);
         if (htmlRes.ok) {
           const htmlText = await htmlRes.text();
@@ -89,13 +55,14 @@ export default function TopicoPage() {
           setErro("Arquivo HTML não encontrado");
         }
 
-        // CARREGAR JSON (flashcards/exercícios)
         const jsonRes = await fetch(`/data/conteudo/${materia}/${id}.json`);
         if (jsonRes.ok) {
           const jsonData = await jsonRes.json();
           setMetadados({
             ...jsonData,
-            tempoEstimado: jsonData.tempoEstimado || 45, // ← LINHA ADICIONADA
+            materiaId: jsonData.materiaId || materia,
+            materiaSlug: jsonData.materiaSlug || materia,
+            tempoEstimado: jsonData.tempoEstimado || 45,
           });
           console.log("✅ JSON carregado", jsonData);
         }
@@ -108,14 +75,61 @@ export default function TopicoPage() {
     }
 
     if (materia && id) carregarConteudo();
-  }, [materia, id]);
+  }, [materia, id, concursoId]);
 
-  // 🔥 LOG PARA DEBUG
+  // 🔥 REGISTRAR INÍCIO DO TÓPICO - com 5 argumentos
+  useEffect(() => {
+    if (metadados && concursoId && metadados.titulo) {
+      console.log("🎯 Iniciando tópico:", {
+        topicoId: id,
+        concursoId,
+        materiaId: metadados.materiaId || materia,
+        titulo: metadados.titulo,
+      });
+
+      iniciarTopico(
+        id,
+        concursoId,
+        metadados.titulo,
+        metadados.materia || materia,
+        metadados.materiaSlug || materia,
+      );
+    }
+  }, [id, metadados, concursoId, materia, iniciarTopico]);
+
+  // Calcular tempo gasto
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (progresso[id]?.status === "em_andamento") {
+        const tempoDecorrido = Math.floor((Date.now() - tempoInicio) / 60000);
+        if (tempoDecorrido > 0) {
+          atualizarProgresso(id, progresso[id].progresso, tempoDecorrido);
+          setTempoInicio(Date.now());
+        }
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [id, progresso, tempoInicio, atualizarProgresso]);
+
+  // Marcar como concluído - chamada com 3 argumentos (SEM boolean)
+  const marcarConcluido = async () => {
+    const tempoTotal = Math.floor((Date.now() - tempoInicio) / 60000);
+    await atualizarProgresso(id, 100, tempoTotal);
+  };
+
+  // Handler para responder questão - com 4 argumentos
+  const handleResponderQuestao = (acertou: boolean, tempo: number) => {
+    responderQuestao(id, acertou, tempo, concursoId || undefined);
+  };
+
+  // LOG PARA DEBUG
   useEffect(() => {
     console.log("🔐 Status do acesso:", nivelAcesso);
     console.log("📄 Metadados do tópico:", metadados);
     console.log("📊 Progresso do tópico:", progresso[id]);
-  }, [nivelAcesso, metadados, progresso, id]);
+    console.log("🎯 Concurso ID:", concursoId);
+  }, [nivelAcesso, metadados, progresso, id, concursoId]);
 
   if (loading || loadingAcesso) {
     return (
@@ -142,11 +156,11 @@ export default function TopicoPage() {
             Caminho: /data/conteudo/{materia}/{id}.html
           </p>
           <Link
-            href="/concursos"
+            href={concursoId ? `/concurso/${concursoId}` : "/concursos"}
             className="inline-flex items-center gap-2 text-orange-500 hover:text-orange-600 font-medium"
           >
             <ChevronLeft className="w-4 h-4" />
-            Voltar para concursos
+            Voltar para {concursoId ? "concurso" : "concursos"}
           </Link>
         </div>
       </div>
@@ -158,7 +172,7 @@ export default function TopicoPage() {
       {/* Header com progresso */}
       <header className="bg-white/80 backdrop-blur-md border-b border-gray-100 sticky top-0 z-50 shadow-sm">
         <div
-          className="max-w-[1100px] w-full mx-auto"
+          className="max-w-1100 w-full mx-auto"
           style={{ padding: "1rem 2rem" }}
         >
           <div
@@ -166,13 +180,13 @@ export default function TopicoPage() {
             style={{ gap: "0.75rem" }}
           >
             {/* Link Voltar */}
-            <button
-              onClick={() => window.history.back()}
+            <Link
+              href={concursoId ? `/concurso/${concursoId}` : "/concursos"}
               className="cursor-pointer group inline-flex items-center gap-2 text-gray-600 hover:text-orange-600 transition-all duration-200 w-fit"
             >
               <ChevronLeft className="w-5 h-5 transition-transform group-hover:-translate-x-0.5" />
               <span className="text-base font-medium">Voltar</span>
-            </button>
+            </Link>
 
             {/* Ações */}
             <div
@@ -200,15 +214,11 @@ export default function TopicoPage() {
                 onClick={marcarConcluido}
                 disabled={progresso[id]?.status === "concluido"}
                 style={{ padding: "0.625rem 1.5rem" }}
-                className={`cursor-pointer
-            inline-flex items-center gap-2 rounded-lg text-sm font-medium
-            transition-all duration-200 transform active:scale-[0.98]
-            ${
-              progresso[id]?.status === "concluido"
-                ? "bg-green-50 text-green-600 border border-green-200"
-                : "bg-orange-500 text-white hover:bg-orange-600 shadow-sm hover:shadow"
-            }
-          `}
+                className={`cursor-pointer inline-flex items-center gap-2 rounded-lg text-sm font-medium transition-all duration-200 transform active:scale-[0.98] ${
+                  progresso[id]?.status === "concluido"
+                    ? "bg-green-50 text-green-600 border border-green-200"
+                    : "bg-orange-500 text-white hover:bg-orange-600 shadow-sm hover:shadow"
+                }`}
               >
                 <CheckCircle
                   className={`w-4 h-4 ${progresso[id]?.status === "concluido" ? "fill-green-600 text-white" : ""}`}
@@ -230,7 +240,7 @@ export default function TopicoPage() {
           {/* Barra de progresso */}
           {progresso[id] && (
             <div style={{ marginTop: "1rem" }}>
-              <div className="h-[3px] bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-0.75 bg-gray-100 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-orange-500 rounded-full transition-all duration-500 ease-out"
                   style={{ width: `${progresso[id].progresso}%` }}
@@ -257,11 +267,9 @@ export default function TopicoPage() {
         }
       >
         {/* TEXTO */}
-
         <div dangerouslySetInnerHTML={{ __html: html }} />
 
         {/* Flashcards e Exercícios (abaixo do conteúdo) */}
-
         {metadados?.flashcards && metadados.flashcards.length > 0 && (
           <div
             style={{

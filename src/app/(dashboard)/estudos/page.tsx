@@ -35,6 +35,7 @@ interface Concurso {
   nome: string;
   thumbnail: string;
   cor: string;
+  grade?: Record<string, string[]>;
 }
 
 interface TopicoEstudo {
@@ -82,95 +83,133 @@ export default function EstudosPage() {
       try {
         setLoading(true);
 
-        // Buscar dados do usuário para meta diária
+        // Buscar dados do usuário para meta diária e favoritos
         const userRef = doc(db, "usuarios", user.uid);
         const userSnap = await getDoc(userRef);
 
+        let userFavoritos: string[] = [];
+
         if (userSnap.exists()) {
           const userData = userSnap.data();
-          setMetaDiaria(userData.preferences?.metaDiaria || 120);
+          setMetaDiaria(userData.preferences?.metaDiaria || 60);
+          userFavoritos = userData.preferences?.concursosInteresse || [];
         }
 
-        // Buscar concursos
+        // Buscar todos os concursos
         const concursosQuery = query(collection(db, "concursos"));
         const concursosSnap = await getDocs(concursosQuery);
-        const concursosList = concursosSnap.docs.map((doc) => ({
+        const todosConcursos = concursosSnap.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         })) as Concurso[];
-        setConcursos(concursosList);
 
-        // Buscar tópicos do progresso
+        // 🔥 CALCULAR PROGRESSO POR CONCURSO
+        const progressoPorConcurso: Record<
+          string,
+          { total: number; concluidos: number; progresso: number }
+        > = {};
+
+        todosConcursos.forEach((concurso) => {
+          const grade = concurso.grade || {};
+          const topicosIds = Object.values(grade).flat() as string[];
+
+          if (topicosIds.length > 0) {
+            let concluidos = 0;
+
+            topicosIds.forEach((topicoId) => {
+              const prog = progresso[topicoId];
+              if (prog && prog.status === "concluido") {
+                concluidos++;
+              }
+            });
+
+            progressoPorConcurso[concurso.id] = {
+              total: topicosIds.length,
+              concluidos,
+              progresso: Math.round((concluidos / topicosIds.length) * 100),
+            };
+          } else {
+            progressoPorConcurso[concurso.id] = {
+              total: 0,
+              concluidos: 0,
+              progresso: 0,
+            };
+          }
+        });
+
+        // 🔥 FILTRAR CONCURSOS: favoritos OU com progresso > 0
+        const concursosParaMostrar = todosConcursos.filter((concurso) => {
+          const temProgresso =
+            (progressoPorConcurso[concurso.id]?.progresso || 0) > 0;
+          const ehFavorito = userFavoritos.includes(concurso.id);
+          return temProgresso || ehFavorito;
+        });
+
+        setConcursos(concursosParaMostrar);
+
+        // 🔥 MAPA DE PROGRESSO APENAS PARA OS CONCURSOS QUE VAMOS MOSTRAR
+        const progressoCalc: Record<string, number> = {};
+        concursosParaMostrar.forEach((concurso) => {
+          progressoCalc[concurso.id] =
+            progressoPorConcurso[concurso.id]?.progresso || 0;
+        });
+        setProgressoConcursos(progressoCalc);
+
+        // Buscar TODO o progresso do usuário (questões E tópicos)
         const progressoQuery = query(
           collection(db, "progresso"),
           where("userId", "==", user.uid),
-          where("tipo", "==", "topico"),
         );
         const progressoSnap = await getDocs(progressoQuery);
 
         const topicosData: TopicoEstudo[] = [];
-        const progressoPorConcurso: Record<
-          string,
-          { total: number; concluidos: number; tempo: number }
-        > = {};
         let totalTempoCalculado = 0;
+        let questoesAcertadas = 0;
+        let questoesTotais = 0;
 
         for (const docProgresso of progressoSnap.docs) {
           const data = docProgresso.data();
           const topicoId = data.conteudoId;
+          const tempoGasto = data.tempoGasto || 0;
 
-          // Buscar metadados do tópico no catálogo
-          const topicoRef = doc(db, "catalogo", topicoId);
-          const topicoSnap = await getDoc(topicoRef);
+          // Somar tempo total
+          totalTempoCalculado += tempoGasto;
 
-          if (topicoSnap.exists()) {
-            const topicoData = topicoSnap.data() as CatalogoData;
-            const tempoGasto = data.tempoGasto || 0;
-            totalTempoCalculado += tempoGasto;
+          // Se for questão, contar acertos
+          if (data.tipo === "questao") {
+            questoesTotais++;
+            if (data.acertou) {
+              questoesAcertadas++;
+            }
+          }
 
-            topicosData.push({
-              id: topicoId,
-              titulo: topicoData.titulo || "Tópico",
-              materia: topicoData.materiaNome || "Geral",
-              materiaSlug: topicoData.materiaSlug || "geral",
-              concursoId: data.concursoId || "geral",
-              concursoNome:
-                concursosList.find((c) => c.id === data.concursoId)?.nome ||
-                "Concurso",
-              progresso: data.progresso || 0,
-              tempoGasto: tempoGasto,
-              ultimoAcesso: data.ultimoAcesso?.toDate(),
-              status: data.status || "nao_iniciado",
-              isPreview: topicoData.isPreview,
-            });
+          // Se for tópico, adicionar à lista de estudos
+          if (data.tipo === "topico") {
+            // Buscar metadados do tópico no catálogo
+            const topicoRef = doc(db, "catalogo", topicoId);
+            const topicoSnap = await getDoc(topicoRef);
 
-            // Calcular progresso por concurso
-            if (data.concursoId) {
-              if (!progressoPorConcurso[data.concursoId]) {
-                progressoPorConcurso[data.concursoId] = {
-                  total: 0,
-                  concluidos: 0,
-                  tempo: 0,
-                };
-              }
-              progressoPorConcurso[data.concursoId].total++;
-              progressoPorConcurso[data.concursoId].tempo += tempoGasto;
-              if (data.status === "concluido") {
-                progressoPorConcurso[data.concursoId].concluidos++;
-              }
+            if (topicoSnap.exists()) {
+              const topicoData = topicoSnap.data() as CatalogoData;
+
+              topicosData.push({
+                id: topicoId,
+                titulo: topicoData.titulo || "Tópico",
+                materia: topicoData.materiaNome || "Geral",
+                materiaSlug: topicoData.materiaSlug || "geral",
+                concursoId: data.concursoId || "geral",
+                concursoNome:
+                  todosConcursos.find((c) => c.id === data.concursoId)?.nome ||
+                  "Concurso",
+                progresso: data.progresso || 0,
+                tempoGasto: tempoGasto,
+                ultimoAcesso: data.ultimoAcesso?.toDate(),
+                status: data.status || "nao_iniciado",
+                isPreview: topicoData.isPreview,
+              });
             }
           }
         }
-
-        // Calcular porcentagem de progresso por concurso
-        const progressoCalc: Record<string, number> = {};
-        Object.entries(progressoPorConcurso).forEach(([id, dados]) => {
-          progressoCalc[id] =
-            dados.total > 0
-              ? Math.round((dados.concluidos / dados.total) * 100)
-              : 0;
-        });
-        setProgressoConcursos(progressoCalc);
 
         // Formatar tempo total
         const horas = Math.floor(totalTempoCalculado / 60);
@@ -203,7 +242,7 @@ export default function EstudosPage() {
     }
 
     carregarDados();
-  }, [user]);
+  }, [user, progresso]);
 
   const progressoHoje = Math.min(
     Math.round((tempoEstudadoHoje / metaDiaria) * 100),
@@ -224,8 +263,8 @@ export default function EstudosPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 via-white to-orange-50">
       {/* Header com gradiente */}
-      <div className="bg-gradient-to-r from-black to-orange-900 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div className="flex items-center justify-between bg-gradient-to-r from-black to-orange-900 text-white p-8 rounded-2xl">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -241,7 +280,7 @@ export default function EstudosPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Cards de Resumo - Mais coloridos */}
+        {/* Cards de Resumo */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -318,7 +357,7 @@ export default function EstudosPage() {
           </motion.div>
         </div>
 
-        {/* Progresso Diário - Mais destaque */}
+        {/* Progresso Diário */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -533,8 +572,21 @@ export default function EstudosPage() {
                   )}
                 </div>
               ) : (
-                <div className="text-center py-4">
-                  <p className="text-gray-500">Nenhum concurso encontrado</p>
+                <div className="text-center py-12 bg-orange-50 rounded-xl">
+                  <BookOpen className="w-16 h-16 text-orange-300 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">
+                    Nenhum concurso em andamento
+                  </h3>
+                  <p className="text-gray-500 mb-6">
+                    Comece a estudar ou favorite concursos para acompanhar aqui
+                  </p>
+                  <Link
+                    href="/concursos"
+                    className="inline-flex items-center gap-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-xl font-bold hover:shadow-lg transition"
+                  >
+                    Explorar concursos
+                    <ChevronRight className="w-5 h-5" />
+                  </Link>
                 </div>
               )}
             </motion.div>
@@ -570,18 +622,18 @@ export default function EstudosPage() {
             </motion.div>
 
             {/* Dica Rápida */}
-            <motion.div
+            {/* <motion.div
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.8 }}
-              className="bg-gradient-to-br from-purple-700 to-purple-900 rounded-2xl p-8 text-white shadow-xl"
+              className="bg-gradient-to-br from-black to-purple-900 rounded-2xl p-8 text-white shadow-xl"
             >
               <h3 className="text-xl font-black mb-3">💡 Dica do dia</h3>
               <p className="text-purple-100 text-lg leading-relaxed">
                 Estude um pouco todos os dias. A consistência é mais importante
                 que a quantidade!
               </p>
-            </motion.div>
+            </motion.div> */}
           </div>
         </div>
       </div>

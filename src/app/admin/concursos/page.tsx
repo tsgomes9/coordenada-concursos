@@ -21,6 +21,9 @@ import {
   Clock,
   MapPin,
   Award,
+  Tag,
+  FileText,
+  TrendingUp,
 } from "lucide-react";
 
 interface Concurso {
@@ -29,6 +32,7 @@ interface Concurso {
   banca: string;
   vagas: number;
   salario: string;
+  precoInscricao?: string;
   status: string;
   thumbnail: string;
   orgao?: string;
@@ -36,6 +40,7 @@ interface Concurso {
   descricao?: string;
   areas?: string[];
   cargos?: string[];
+  locais?: string[];
   inscricoes?: {
     inicio: string;
     fim: string;
@@ -57,6 +62,10 @@ export default function ConcursosPage() {
   const [concursoVisualizar, setConcursoVisualizar] = useState<Concurso | null>(
     null,
   );
+
+  // Filtros adicionais
+  const [filtroStatus, setFiltroStatus] = useState<string>("todos");
+  const [showFilters, setShowFilters] = useState(false);
 
   // Paginação
   const [paginaAtual, setPaginaAtual] = useState(1);
@@ -111,7 +120,10 @@ export default function ConcursosPage() {
       concurso.banca?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       concurso.orgao?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    return matchesSearch;
+    const matchesStatus =
+      filtroStatus === "todos" || concurso.status === filtroStatus;
+
+    return matchesSearch && matchesStatus;
   });
 
   // Paginação
@@ -124,7 +136,7 @@ export default function ConcursosPage() {
   // Resetar página quando filtrar
   useEffect(() => {
     setPaginaAtual(1);
-  }, [searchTerm]);
+  }, [searchTerm, filtroStatus]);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -136,6 +148,19 @@ export default function ConcursosPage() {
         return "bg-gray-100 text-gray-600";
       default:
         return "bg-gray-100 text-gray-600";
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case "aberto":
+        return "📢 Inscrições abertas";
+      case "previsto":
+        return "📅 Edital previsto";
+      case "fechado":
+        return "🔒 Concurso encerrado";
+      default:
+        return status;
     }
   };
 
@@ -186,7 +211,67 @@ export default function ConcursosPage() {
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
             />
           </div>
+
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition flex items-center gap-2"
+          >
+            <Tag className="w-4 h-4" />
+            <span>Filtros</span>
+            <ChevronRight
+              className={`w-4 h-4 transition-transform ${
+                showFilters ? "rotate-90" : ""
+              }`}
+            />
+          </button>
         </div>
+
+        {showFilters && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => setFiltroStatus("todos")}
+                className={`px-3 py-1.5 rounded-lg text-sm transition ${
+                  filtroStatus === "todos"
+                    ? "bg-orange-500 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                Todos
+              </button>
+              <button
+                onClick={() => setFiltroStatus("aberto")}
+                className={`px-3 py-1.5 rounded-lg text-sm transition ${
+                  filtroStatus === "aberto"
+                    ? "bg-green-500 text-white"
+                    : "bg-green-50 text-green-600 hover:bg-green-100"
+                }`}
+              >
+                📢 Abertos
+              </button>
+              <button
+                onClick={() => setFiltroStatus("previsto")}
+                className={`px-3 py-1.5 rounded-lg text-sm transition ${
+                  filtroStatus === "previsto"
+                    ? "bg-yellow-500 text-white"
+                    : "bg-yellow-50 text-yellow-600 hover:bg-yellow-100"
+                }`}
+              >
+                📅 Previstos
+              </button>
+              <button
+                onClick={() => setFiltroStatus("fechado")}
+                className={`px-3 py-1.5 rounded-lg text-sm transition ${
+                  filtroStatus === "fechado"
+                    ? "bg-gray-500 text-white"
+                    : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                }`}
+              >
+                🔒 Encerrados
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Lista de Concursos */}
@@ -197,11 +282,11 @@ export default function ConcursosPage() {
             Nenhum concurso encontrado
           </h3>
           <p className="text-gray-500 mb-6">
-            {searchTerm
-              ? "Tente outros termos de busca"
+            {searchTerm || filtroStatus !== "todos"
+              ? "Tente outros termos de busca ou filtros"
               : "Comece cadastrando seu primeiro concurso"}
           </p>
-          {!searchTerm && (
+          {!searchTerm && filtroStatus === "todos" && (
             <Link
               href="/admin/concursos/novo"
               className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-3 rounded-lg inline-flex items-center gap-2"
@@ -229,6 +314,9 @@ export default function ConcursosPage() {
                   </th>
                   <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
                     Salário
+                  </th>
+                  <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
+                    Inscrição
                   </th>
                   <th className="text-left p-4 text-xs font-medium text-gray-500 uppercase">
                     Status
@@ -278,7 +366,14 @@ export default function ConcursosPage() {
                     <td className="p-4">
                       <span className="flex items-center gap-1 text-gray-600 font-medium">
                         <DollarSign className="w-4 h-4" />
-                        {concurso.salario}
+                        {concurso.salario || "A definir"}
+                      </span>
+                    </td>
+
+                    <td className="p-4">
+                      <span className="flex items-center gap-1 text-gray-600">
+                        <FileText className="w-4 h-4" />
+                        {concurso.precoInscricao || "Grátis"}
                       </span>
                     </td>
 
@@ -286,7 +381,7 @@ export default function ConcursosPage() {
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(concurso.status)}`}
                       >
-                        {concurso.status || "aberto"}
+                        {getStatusLabel(concurso.status)}
                       </span>
                     </td>
 
@@ -382,7 +477,7 @@ export default function ConcursosPage() {
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             {/* Header */}
-            <div className="p-6 border-b border-gray-200 sticky top-0 bg-white">
+            <div className="p-6 border-b border-gray-200 sticky top-0 bg-white z-10">
               <div className="flex justify-between items-center">
                 <h3 className="font-display font-bold text-xl text-gray-900">
                   Detalhes do Concurso
@@ -411,22 +506,27 @@ export default function ConcursosPage() {
                 </div>
               </div>
 
-              {/* Status */}
-              <div className="flex gap-2">
+              {/* Status e Nível */}
+              <div className="flex flex-wrap gap-2">
                 <span
                   className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(concursoVisualizar.status)}`}
                 >
-                  {concursoVisualizar.status || "aberto"}
+                  {getStatusLabel(concursoVisualizar.status)}
                 </span>
                 {concursoVisualizar.nivel && (
                   <span className="px-3 py-1 bg-gray-100 text-gray-600 rounded-full text-xs font-medium">
-                    Nível: {concursoVisualizar.nivel}
+                    Nível:{" "}
+                    {concursoVisualizar.nivel === "ambos"
+                      ? "Médio/Superior"
+                      : concursoVisualizar.nivel === "medio"
+                        ? "Médio"
+                        : "Superior"}
                   </span>
                 )}
               </div>
 
               {/* Informações principais */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-3 gap-4">
                 <div className="bg-gray-50 p-4 rounded-xl">
                   <p className="text-sm text-gray-500 mb-1">Vagas</p>
                   <p className="text-xl font-bold text-gray-900">
@@ -436,10 +536,38 @@ export default function ConcursosPage() {
                 <div className="bg-gray-50 p-4 rounded-xl">
                   <p className="text-sm text-gray-500 mb-1">Salário</p>
                   <p className="text-xl font-bold text-gray-900">
-                    {concursoVisualizar.salario}
+                    {concursoVisualizar.salario || "A definir"}
+                  </p>
+                </div>
+                <div className="bg-gray-50 p-4 rounded-xl">
+                  <p className="text-sm text-gray-500 mb-1">Inscrição</p>
+                  <p className="text-xl font-bold text-gray-900">
+                    {concursoVisualizar.precoInscricao || "Grátis"}
                   </p>
                 </div>
               </div>
+
+              {/* Localidades */}
+              {concursoVisualizar.locais &&
+                concursoVisualizar.locais.length > 0 && (
+                  <div>
+                    <h4 className="font-medium text-gray-900 mb-3 flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-orange-500" />
+                      Localidades
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {concursoVisualizar.locais.map((local, index) => (
+                        <span
+                          key={index}
+                          className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm flex items-center gap-1"
+                        >
+                          <MapPin className="w-3 h-3" />
+                          {local}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
               {/* Datas */}
               {(concursoVisualizar.inscricoes?.inicio ||
@@ -512,7 +640,7 @@ export default function ConcursosPage() {
                       {concursoVisualizar.cargos.map((cargo, index) => (
                         <span
                           key={index}
-                          className="bg-blue-100 text-blue-600 px-3 py-1 rounded-full text-sm"
+                          className="bg-purple-100 text-purple-600 px-3 py-1 rounded-full text-sm"
                         >
                           {cargo}
                         </span>
@@ -525,7 +653,7 @@ export default function ConcursosPage() {
               {concursoVisualizar.descricao && (
                 <div>
                   <h4 className="font-medium text-gray-900 mb-2">Descrição</h4>
-                  <p className="text-gray-600 text-sm">
+                  <p className="text-gray-600 text-sm whitespace-pre-wrap">
                     {concursoVisualizar.descricao}
                   </p>
                 </div>
@@ -541,7 +669,7 @@ export default function ConcursosPage() {
                     rel="noopener noreferrer"
                     className="text-orange-500 hover:text-orange-600 text-sm flex items-center gap-1"
                   >
-                    <Award className="w-4 h-4" />
+                    <FileText className="w-4 h-4" />
                     Ver edital completo
                   </a>
                 </div>

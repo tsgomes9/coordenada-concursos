@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
     doc,
     setDoc,
@@ -14,7 +14,7 @@ import {
 import { db } from '@/lib/firebase/config';
 import { useAuth } from '@/lib/contexts/AuthContext';
 
-interface ProgressoItem {
+export interface ProgressoItem {
     id: string;
     userId: string;
     conteudoId: string;
@@ -27,9 +27,10 @@ interface ProgressoItem {
     concursoId?: string;
     titulo?: string;
     materia?: string;
+    materiaSlug?: string;
 }
 
-interface Estatisticas {
+export interface Estatisticas {
     totalTopicos: number;
     topicosConcluidos: number;
     topicosEmAndamento: number;
@@ -59,47 +60,8 @@ export function useProgresso() {
     });
     const [loading, setLoading] = useState(true);
 
-    // Carregar progresso do usuário
-    useEffect(() => {
-        if (!user) {
-            setProgresso({});
-            setLoading(false);
-            return;
-        }
-
-        async function carregarProgresso() {
-            try {
-                const q = query(
-                    collection(db, 'progresso'),
-                    where('userId', '==', user?.uid)
-                );
-                const snapshot = await getDocs(q);
-
-                const progressoMap: Record<string, ProgressoItem> = {};
-                snapshot.docs.forEach(doc => {
-                    const data = doc.data();
-                    progressoMap[data.conteudoId] = {
-                        id: doc.id,
-                        ...data,
-                        ultimoAcesso: data.ultimoAcesso?.toDate()
-                    } as ProgressoItem;
-                });
-
-                setProgresso(progressoMap);
-                if (user)
-                    await calcularEstatisticas(user.uid, progressoMap);
-            } catch (error) {
-                console.error('Erro ao carregar progresso:', error);
-            } finally {
-                setLoading(false);
-            }
-        }
-
-        carregarProgresso();
-    }, [user]);
-
-    // Calcular estatísticas
-    const calcularEstatisticas = async (userId: string, progressoMap: Record<string, ProgressoItem>) => {
+    // Calcular estatísticas (memoizada para evitar loops)
+    const calcularEstatisticas = useCallback(async (userId: string, progressoMap: Record<string, ProgressoItem>) => {
         const stats: Estatisticas = {
             totalTopicos: 0,
             topicosConcluidos: 0,
@@ -131,6 +93,7 @@ export function useProgresso() {
             } else if (item.tipo === 'questao') {
                 stats.totalQuestoes++;
                 if (item.acertou) stats.questoesAcertadas++;
+                stats.tempoTotal += item.tempoGasto || 0;
             }
         });
 
@@ -152,13 +115,88 @@ export function useProgresso() {
 
         setEstatisticas(stats);
         return stats;
-    };
+    }, [user]);
+
+    // Carregar progresso do usuário
+
+    useEffect(() => {
+        if (!user) {
+            setProgresso({});
+            setLoading(false);
+            return;
+        }
+
+        let isMounted = true;
+
+        async function carregarProgresso() {
+            try {
+                console.log("📥 Carregando progresso do usuário:", user?.uid);
+
+                const q = query(
+                    collection(db, 'progresso'),
+                    where('userId', '==', user?.uid)
+                );
+                const snapshot = await getDocs(q);
+
+                const progressoMap: Record<string, ProgressoItem> = {};
+
+                snapshot.docs.forEach(doc => {
+                    const data = doc.data();
+                    progressoMap[data.conteudoId] = {
+                        id: doc.id,
+                        userId: data.userId,
+                        conteudoId: data.conteudoId,
+                        tipo: data.tipo,
+                        status: data.status || 'nao_iniciado',
+                        progresso: data.progresso || 0,
+                        acertou: data.acertou,
+                        tempoGasto: data.tempoGasto || 0,
+                        ultimoAcesso: data.ultimoAcesso?.toDate(),
+                        concursoId: data.concursoId,
+                        titulo: data.titulo,
+                        materia: data.materia,
+                        materiaSlug: data.materiaSlug
+                    } as ProgressoItem;
+                });
+
+                console.log("✅ Progresso carregado:", Object.keys(progressoMap).length, "itens");
+
+                if (isMounted) {
+                    setProgresso(progressoMap);
+                    // 🔥 CORREÇÃO: user.uid é string, não undefined
+                    if (user?.uid) {
+                        await calcularEstatisticas(user.uid, progressoMap);
+                    }
+                }
+            } catch (error) {
+                console.error('❌ Erro ao carregar progresso:', error);
+            } finally {
+                if (isMounted) {
+                    setLoading(false);
+                }
+            }
+        }
+
+        carregarProgresso();
+
+        return () => {
+            isMounted = false;
+        };
+    }, [user, calcularEstatisticas]);
 
     // Marcar tópico como iniciado
-    const iniciarTopico = async (conteudoId: string, concursoId: string, titulo?: string, materia?: string) => {
+    const iniciarTopico = useCallback(async (
+        conteudoId: string,
+        concursoId: string,
+        titulo?: string,
+        materia?: string,
+        materiaSlug?: string
+    ) => {
         if (!user) return;
 
         try {
+            console.log("🆕 Iniciando tópico:", { conteudoId, concursoId, titulo });
+
             const docId = `${user.uid}_${conteudoId}`;
             const docRef = doc(db, 'progresso', docId);
 
@@ -178,35 +216,50 @@ export function useProgresso() {
                     createdAt: Timestamp.now(),
                     concursoId,
                     titulo: titulo || '',
-                    materia: materia || ''
+                    materia: materia || '',
+                    materiaSlug: materiaSlug || ''
                 });
 
+                console.log("✅ Tópico iniciado no Firestore");
+
+                // Criar novo item
+                const novoItem: ProgressoItem = {
+                    id: docId,
+                    userId: user.uid,
+                    conteudoId,
+                    tipo: 'topico',
+                    status: 'em_andamento',
+                    progresso: 0,
+                    tempoGasto: 0,
+                    ultimoAcesso: new Date(),
+                    concursoId,
+                    titulo,
+                    materia,
+                    materiaSlug
+                };
+
                 // Atualizar estado local
-                setProgresso(prev => ({
-                    ...prev,
-                    [conteudoId]: {
-                        id: docId,
-                        userId: user.uid,
-                        conteudoId,
-                        tipo: 'topico',
-                        status: 'em_andamento',
-                        progresso: 0,
-                        tempoGasto: 0,
-                        ultimoAcesso: new Date(),
-                        concursoId,
-                        titulo,
-                        materia
-                    }
-                }));
+                setProgresso(prev => {
+                    const novoProgresso = {
+                        ...prev,
+                        [conteudoId]: novoItem
+                    };
+
+                    // Recalcular estatísticas
+                    calcularEstatisticas(user.uid, novoProgresso);
+
+                    return novoProgresso;
+                });
+            } else {
+                console.log("ℹ️ Tópico já existe");
             }
         } catch (error) {
-            console.error('Erro ao iniciar tópico:', error);
+            console.error('❌ Erro ao iniciar tópico:', error);
         }
-    };
+    }, [user, calcularEstatisticas]);
 
     // Atualizar progresso do tópico
-    // Na função atualizarProgresso, adicione LOGS:
-    const atualizarProgresso = async (
+    const atualizarProgresso = useCallback(async (
         conteudoId: string,
         progressoValue: number,
         tempo: number
@@ -226,16 +279,31 @@ export function useProgresso() {
             const novoStatus = progressoValue >= 100 ? 'concluido' : 'em_andamento';
             const novoTempoGasto = (itemAtual?.tempoGasto || 0) + tempo;
 
-            console.log("📝 Dados a serem salvos:", {
-                userId: user.uid,
-                conteudoId,
-                status: novoStatus,
-                progresso: progressoValue,
-                tempoGasto: novoTempoGasto
-            });
+            // Buscar dados adicionais se for a primeira atualização
+            let concursoId = itemAtual?.concursoId;
+            let titulo = itemAtual?.titulo;
+            let materia = itemAtual?.materia;
+            let materiaSlug = itemAtual?.materiaSlug;
 
-            // Usar setDoc com merge para criar se não existir
-            await setDoc(docRef, {
+            // Se não tem título, tentar buscar do catálogo
+            if (!titulo) {
+                try {
+                    const topicoRef = doc(db, 'catalogo', conteudoId);
+                    const topicoSnap = await getDoc(topicoRef);
+                    if (topicoSnap.exists()) {
+                        const data = topicoSnap.data();
+                        titulo = data.titulo || '';
+                        materia = data.materiaNome || '';
+                        materiaSlug = data.materiaSlug || '';
+                        concursoId = concursoId || data.concursoId || '';
+                    }
+                } catch (error) {
+                    console.error("Erro ao buscar dados do catálogo:", error);
+                }
+            }
+
+            // Dados a serem salvos
+            const dadosAtualizacao: any = {
                 userId: user.uid,
                 conteudoId,
                 tipo: 'topico',
@@ -243,11 +311,20 @@ export function useProgresso() {
                 progresso: progressoValue,
                 tempoGasto: novoTempoGasto,
                 ultimoAcesso: Timestamp.now()
-            }, { merge: true });
+            };
+
+            // Adicionar campos extras se existirem
+            if (concursoId) dadosAtualizacao.concursoId = concursoId;
+            if (titulo) dadosAtualizacao.titulo = titulo;
+            if (materia) dadosAtualizacao.materia = materia;
+            if (materiaSlug) dadosAtualizacao.materiaSlug = materiaSlug;
+
+            // Usar setDoc com merge para criar se não existir
+            await setDoc(docRef, dadosAtualizacao, { merge: true });
 
             console.log("✅ Documento salvo no Firestore");
 
-            // 🔥 CORRIGIR ATUALIZAÇÃO DO ESTADO LOCAL
+            // Criar item atualizado
             const itemAtualizado: ProgressoItem = {
                 id: docId,
                 userId: user.uid,
@@ -258,25 +335,26 @@ export function useProgresso() {
                 tempoGasto: novoTempoGasto,
                 ultimoAcesso: new Date(),
                 acertou: itemAtual?.acertou || false,
-                concursoId: itemAtual?.concursoId || '',
-                titulo: itemAtual?.titulo || '',
-                materia: itemAtual?.materia || ''
+                concursoId: concursoId || itemAtual?.concursoId,
+                titulo: titulo || itemAtual?.titulo,
+                materia: materia || itemAtual?.materia,
+                materiaSlug: materiaSlug || itemAtual?.materiaSlug
             };
 
             console.log("📦 Atualizando estado local:", itemAtualizado);
 
+            // Atualizar estado local
             setProgresso(prev => {
-                const novo = {
+                const novoProgresso = {
                     ...prev,
                     [conteudoId]: itemAtualizado
                 };
-                console.log("📊 Novo estado progresso:", novo);
-                return novo;
-            });
 
-            // Recalcular estatísticas
-            const novoProgresso = { ...progresso, [conteudoId]: itemAtualizado };
-            await calcularEstatisticas(user.uid, novoProgresso);
+                // Recalcular estatísticas
+                calcularEstatisticas(user.uid, novoProgresso);
+
+                return novoProgresso;
+            });
 
             // Se concluiu, atualizar streak
             if (novoStatus === 'concluido') {
@@ -285,10 +363,15 @@ export function useProgresso() {
         } catch (error) {
             console.error('❌ Erro ao atualizar progresso:', error);
         }
-    };
+    }, [user, progresso, calcularEstatisticas]);
 
-    // Na função responderQuestao, adicione LOGS:
-    const responderQuestao = async (questaoId: string, acertou: boolean, tempo: number) => {
+    // Marcar questão como respondida
+    const responderQuestao = useCallback(async (
+        questaoId: string,
+        acertou: boolean,
+        tempo: number,
+        concursoId?: string
+    ) => {
         if (!user) {
             console.log("❌ Sem usuário logado");
             return;
@@ -310,12 +393,13 @@ export function useProgresso() {
                 acertou,
                 tempoGasto: tempo,
                 ultimoAcesso: Timestamp.now(),
-                createdAt: Timestamp.now()
+                createdAt: Timestamp.now(),
+                concursoId: concursoId || ''
             }, { merge: true });
 
             console.log("✅ Resposta salva no Firestore");
 
-            // 🔥 CORRIGIR ATUALIZAÇÃO DO ESTADO LOCAL
+            // Criar novo item
             const novoItem: ProgressoItem = {
                 id: docId,
                 userId: user.uid,
@@ -325,30 +409,31 @@ export function useProgresso() {
                 acertou,
                 tempoGasto: tempo,
                 ultimoAcesso: new Date(),
-                progresso: 100
+                progresso: 100,
+                concursoId
             };
 
             console.log("📦 Atualizando estado local:", novoItem);
 
+            // Atualizar estado local
             setProgresso(prev => {
-                const novo = {
+                const novoProgresso = {
                     ...prev,
                     [questaoId]: novoItem
                 };
-                console.log("📊 Novo estado progresso:", novo);
-                return novo;
-            });
 
-            // Recalcular estatísticas
-            const novoProgresso = { ...progresso, [questaoId]: novoItem };
-            await calcularEstatisticas(user.uid, novoProgresso);
+                // Recalcular estatísticas
+                calcularEstatisticas(user.uid, novoProgresso);
+
+                return novoProgresso;
+            });
         } catch (error) {
             console.error('❌ Erro ao registrar questão:', error);
         }
-    };
+    }, [user, calcularEstatisticas]);
 
     // Verificar e atualizar streak
-    const verificarStreak = async () => {
+    const verificarStreak = useCallback(async () => {
         if (!user) return;
 
         try {
@@ -360,7 +445,14 @@ export function useProgresso() {
                 const ultimoAcesso = userData.stats?.ultimoAcesso?.toDate() || new Date(0);
                 const hoje = new Date();
 
-                const diffDias = Math.floor((hoje.getTime() - ultimoAcesso.getTime()) / (1000 * 60 * 60 * 24));
+                // Zerar horas para comparar apenas datas
+                const ultimoDia = new Date(ultimoAcesso);
+                ultimoDia.setHours(0, 0, 0, 0);
+
+                const hojeDia = new Date(hoje);
+                hojeDia.setHours(0, 0, 0, 0);
+
+                const diffDias = Math.floor((hojeDia.getTime() - ultimoDia.getTime()) / (1000 * 60 * 60 * 24));
 
                 let novoStreak = userData.stats?.streak || 0;
 
@@ -371,8 +463,8 @@ export function useProgresso() {
                     // Perdeu streak
                     novoStreak = 1;
                 } else if (diffDias === 0) {
-                    // Já acessou hoje, mantém
-                    novoStreak = novoStreak;
+                    // Já acessou hoje, mantém (não incrementa novamente)
+                    // Só atualiza o timestamp
                 }
 
                 await updateDoc(userRef, {
@@ -384,14 +476,16 @@ export function useProgresso() {
                     ...prev,
                     streak: novoStreak
                 }));
+
+                console.log("🔥 Streak atualizado:", novoStreak);
             }
         } catch (error) {
             console.error('Erro ao verificar streak:', error);
         }
-    };
+    }, [user]);
 
     // Obter progresso por concurso
-    const getProgressoPorConcurso = async (concursoId: string) => {
+    const getProgressoPorConcurso = useCallback(async (concursoId: string) => {
         if (!user) return { total: 0, concluidos: 0, progresso: 0 };
 
         try {
@@ -414,7 +508,7 @@ export function useProgresso() {
             console.error('Erro ao calcular progresso do concurso:', error);
             return { total: 0, concluidos: 0, progresso: 0 };
         }
-    };
+    }, [user]);
 
     return {
         progresso,

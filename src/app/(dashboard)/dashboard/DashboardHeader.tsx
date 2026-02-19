@@ -164,7 +164,7 @@ export function DashboardHeader() {
                     Meus Estudos
                   </Link>
                   <Link
-                    href="/dashboard/configuracoes"
+                    href="../configuracoes"
                     className="block py-2 text-gray-700 hover:text-orange-600 transition"
                     onClick={() => setMobileMenuOpen(false)}
                   >

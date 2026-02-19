@@ -744,7 +744,7 @@ export default function ConcursoDetalhePage() {
                               {topicos.map((topico, index) => (
                                 <Link
                                   key={topico.id}
-                                  href={`/materia/${gerarSlug(materia.nome)}/topico/${topico.id}`}
+                                  href={`/materia/${gerarSlug(materia.nome)}/topico/${topico.id}?concurso=${concursoId}`}
                                   className="block group"
                                 >
                                   <div className="p-3 lg:p-4 hover:bg-orange-50/50 transition-all duration-300">
@@ -888,7 +888,7 @@ export default function ConcursoDetalhePage() {
                     href={`/materia/${gerarSlug(
                       materias.find((m) => m.id === ultimoTopico.materia)
                         ?.nome || "",
-                    )}/topico/${ultimoTopico.topico}`}
+                    )}/topico/${ultimoTopico.topico}?concurso=${concursoId}`}
                     className="bg-white text-orange-600 px-4 lg:px-8 py-2 lg:py-4 rounded-lg lg:rounded-xl text-xs lg:text-base font-medium hover:bg-orange-50 transition-all duration-300 shadow-lg flex items-center gap-1 lg:gap-2 group/btn flex-shrink-0"
                   >
                     Continuar

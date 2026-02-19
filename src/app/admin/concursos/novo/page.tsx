@@ -5,13 +5,24 @@ import { useRouter } from "next/navigation";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
 import { Button } from "@/components/ui/Button";
-import { ChevronLeft, Plus, X } from "lucide-react";
+import { ChevronLeft, Plus, X, MapPin, DollarSign } from "lucide-react";
+import { estados, Estado } from "@/lib/utils/brazil-cities-states";
+
+interface LocalidadeSelecionada {
+  estado: string;
+  cidade?: string;
+}
 
 export default function NovoConcursoPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [novaArea, setNovaArea] = useState("");
   const [novoCargo, setNovoCargo] = useState("");
+
+  // 🔥 Estados para seleção de localidades
+  const [estadoSelecionado, setEstadoSelecionado] = useState<string>("");
+  const [cidadeSelecionada, setCidadeSelecionada] = useState<string>("");
+  const [localidades, setLocalidades] = useState<LocalidadeSelecionada[]>([]);
 
   const [formData, setFormData] = useState({
     nome: "",
@@ -22,6 +33,7 @@ export default function NovoConcursoPage() {
     edital: "",
     vagas: 0,
     salario: "",
+    precoInscricao: "", // 🔥 NOVO CAMPO
     inscricoes: {
       inicio: "",
       fim: "",
@@ -42,10 +54,16 @@ export default function NovoConcursoPage() {
     setLoading(true);
 
     try {
+      // 🔥 Formatar localidades para salvar no Firestore
+      const locaisFormatados = localidades.map((local) =>
+        local.cidade ? `${local.cidade} - ${local.estado}` : local.estado,
+      );
+
       // Salvar no Firebase
       await addDoc(collection(db, "concursos"), {
         ...formData,
         vagas: Number(formData.vagas),
+        locais: locaisFormatados.length > 0 ? locaisFormatados : ["Nacional"],
         createdAt: Timestamp.now(),
         updatedAt: Timestamp.now(),
       });
@@ -92,6 +110,64 @@ export default function NovoConcursoPage() {
       cargos: formData.cargos.filter((_, i) => i !== index),
     });
   };
+
+  // 🔥 FUNÇÕES PARA LOCALIDADES
+  const handleEstadoChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const sigla = e.target.value;
+    setEstadoSelecionado(sigla);
+    setCidadeSelecionada(""); // Resetar cidade ao mudar estado
+  };
+
+  const adicionarLocalidade = () => {
+    if (!estadoSelecionado) {
+      alert("Selecione um estado");
+      return;
+    }
+
+    const novaLocalidade: LocalidadeSelecionada = {
+      estado: estadoSelecionado,
+    };
+
+    if (cidadeSelecionada) {
+      novaLocalidade.cidade = cidadeSelecionada;
+    }
+
+    // Verificar se já não existe
+    const existe = localidades.some((local) => {
+      if (
+        local.cidade &&
+        local.cidade === cidadeSelecionada &&
+        local.estado === estadoSelecionado
+      ) {
+        return true;
+      }
+      if (
+        !local.cidade &&
+        !cidadeSelecionada &&
+        local.estado === estadoSelecionado
+      ) {
+        return true;
+      }
+      return false;
+    });
+
+    if (existe) {
+      alert("Esta localidade já foi adicionada");
+      return;
+    }
+
+    setLocalidades([...localidades, novaLocalidade]);
+    setEstadoSelecionado("");
+    setCidadeSelecionada("");
+  };
+
+  const removerLocalidade = (index: number) => {
+    setLocalidades(localidades.filter((_, i) => i !== index));
+  };
+
+  // Obter cidades do estado selecionado
+  const cidadesDoEstado =
+    estados.find((e) => e.sigla === estadoSelecionado)?.cidades || [];
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -177,6 +253,97 @@ export default function NovoConcursoPage() {
                 <option value="superior">Superior</option>
                 <option value="ambos">Médio/Superior</option>
               </select>
+            </div>
+          </div>
+        </div>
+
+        {/* 🔥 LOCALIDADES */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h2 className="font-display font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-orange-500" />
+            Localidades (onde as vagas serão lotadas)
+          </h2>
+
+          <div className="grid md:grid-cols-2 gap-4 mb-4">
+            {/* Select de Estado */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Estado *
+              </label>
+              <select
+                value={estadoSelecionado}
+                onChange={handleEstadoChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="">Selecione um estado</option>
+                {estados.map((estado) => (
+                  <option key={estado.sigla} value={estado.sigla}>
+                    {estado.sigla} - {estado.nome}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Select de Cidade (opcional) */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Cidade (opcional)
+              </label>
+              <select
+                value={cidadeSelecionada}
+                onChange={(e) => setCidadeSelecionada(e.target.value)}
+                disabled={!estadoSelecionado}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
+              >
+                <option value="">Todas as cidades do estado</option>
+                {cidadesDoEstado.map((cidade) => (
+                  <option key={cidade} value={cidade}>
+                    {cidade}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex justify-end mb-4">
+            <button
+              type="button"
+              onClick={adicionarLocalidade}
+              disabled={!estadoSelecionado}
+              className="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <Plus className="w-4 h-4" />
+              Adicionar Localidade
+            </button>
+          </div>
+
+          {/* Lista de Localidades Selecionadas */}
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {localidades.map((local, index) => (
+                <span
+                  key={index}
+                  className="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-sm flex items-center gap-2"
+                >
+                  <MapPin className="w-3 h-3 text-gray-500" />
+                  {local.cidade
+                    ? `${local.cidade} - ${local.estado}`
+                    : local.estado}
+                  <button
+                    type="button"
+                    onClick={() => removerLocalidade(index)}
+                    className="text-gray-500 hover:text-red-500"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </span>
+              ))}
+              {localidades.length === 0 && (
+                <p className="text-sm text-gray-400">
+                  Nenhuma localidade adicionada. Será considerado âmbito
+                  nacional.
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -315,6 +482,29 @@ export default function NovoConcursoPage() {
                 placeholder="Ex: R$ 12.000,00"
               />
             </div>
+          </div>
+        </div>
+
+        {/* 🔥 PREÇO DA INSCRIÇÃO */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+          <h2 className="font-display font-bold text-gray-900 mb-4 flex items-center gap-2">
+            <DollarSign className="w-5 h-5 text-orange-500" />
+            Inscrição
+          </h2>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Preço da Inscrição
+            </label>
+            <input
+              type="text"
+              value={formData.precoInscricao}
+              onChange={(e) =>
+                setFormData({ ...formData, precoInscricao: e.target.value })
+              }
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+              placeholder="Ex: R$ 150,00"
+            />
           </div>
         </div>
 
