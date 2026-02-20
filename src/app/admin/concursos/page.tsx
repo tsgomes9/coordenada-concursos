@@ -30,7 +30,7 @@ import {
   Filter,
   Layers,
 } from "lucide-react";
-import router from "next/router";
+import { useRouter } from "next/navigation";
 
 interface NivelInfo {
   nivel: string;
@@ -315,6 +315,7 @@ export default function ConcursosPage() {
       </div>
     );
   }
+  const router = useRouter();
 
   return (
     <div className="space-y-8">
@@ -709,15 +710,16 @@ export default function ConcursosPage() {
       )}
 
       {/* Modal de Visualização */}
+      {/* Modal de Visualização */}
       {showViewModal && concursoVisualizar && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+            className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden"
           >
-            {/* Header com gradiente */}
-            <div className="bg-gradient-to-r from-red-800 to-purple-900 p-6 text-white sticky top-0 z-10">
+            {/* Header com gradiente - Fixo */}
+            <div className="bg-gradient-to-r from-red-800 to-purple-900 p-6 text-white flex-shrink-0">
               <div className="flex justify-between items-center">
                 <div className="flex items-center gap-3">
                   <span className="text-4xl">
@@ -734,15 +736,15 @@ export default function ConcursosPage() {
                 </div>
                 <button
                   onClick={() => setShowViewModal(false)}
-                  className="p-2 hover:bg-white/20 rounded-xl transition"
+                  className="p-2 cursor-pointer hover:bg-white/20 rounded-xl transition"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
-            {/* Conteúdo */}
-            <div className="p-6 space-y-6">
+            {/* Conteúdo - Scrollável */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
               {/* Status e informações rápidas */}
               <div className="flex flex-wrap gap-2">
                 <span
@@ -954,18 +956,18 @@ export default function ConcursosPage() {
               )}
             </div>
 
-            {/* Footer */}
-            <div className="p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+            {/* Footer - Fixo */}
+            <div className="p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl flex-shrink-0">
               <div className="flex justify-end gap-3">
                 <button
                   onClick={() => setShowViewModal(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-xl hover:bg-white transition font-medium"
+                  className="px-4 py-2 cursor-pointer border border-gray-300 rounded-xl hover:bg-white transition font-medium"
                 >
                   Fechar
                 </button>
                 <Link
                   href={`/admin/concursos/${concursoVisualizar.id}/editar`}
-                  className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-xl font-medium hover:shadow-lg transition"
+                  className="px-4 py-2 bg-gradient-to-r from-black to-purple-900 text-white rounded-xl font-medium hover:shadow-lg transition"
                 >
                   Editar concurso
                 </Link>
