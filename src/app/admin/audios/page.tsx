@@ -26,11 +26,6 @@ export default function AudiosPage() {
 
         <p className="text-xl text-gray-600 mb-4">Áudios e Podcasts</p>
 
-        <p className="text-gray-500 max-w-md mx-auto mb-8">
-          Estamos preparando conteúdos em áudio para você estudar onde e quando
-          quiser.
-        </p>
-
         <div className="inline-flex items-center gap-2 text-orange-500 bg-orange-50 px-6 py-3 rounded-full">
           <Clock className="w-5 h-5" />
           <span className="font-medium">Em desenvolvimento</span>

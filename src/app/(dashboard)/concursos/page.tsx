@@ -44,16 +44,18 @@ import {
   Navigation,
 } from "lucide-react";
 
+interface NivelInfo {
+  nivel: string;
+  vagas: number;
+  salario: string | number;
+}
+
 interface Concurso {
   id: string;
   nome: string;
   banca: string;
-  nivel: string;
-  areas: string[];
   thumbnail?: string;
   descricao: string;
-  vagas: number;
-  salario?: string;
   ultimoEdital: string;
   tags?: string[];
   destaque?: boolean;
@@ -61,6 +63,14 @@ interface Concurso {
   grade?: Record<string, string[]>;
   locais?: string[];
   status?: string;
+  areas?: string[];
+  niveis?: NivelInfo[];
+  stats?: {
+    vagas: number;
+    materias: number;
+    topicos: number;
+    horas: number;
+  };
 }
 
 interface ProgressoConcurso {
@@ -127,6 +137,79 @@ function ConcursoCard({
   const router = useRouter();
   const [isHovered, setIsHovered] = useState(false);
 
+  // Calcular total de vagas a partir dos níveis
+  const calcularTotalVagas = () => {
+    if (concurso.niveis && concurso.niveis.length > 0) {
+      return concurso.niveis.reduce(
+        (acc, nivel) => acc + (nivel.vagas || 0),
+        0,
+      );
+    }
+    return concurso.stats?.vagas || 0;
+  };
+
+  // Obter faixa salarial
+  const obterFaixaSalarial = () => {
+    if (concurso.niveis && concurso.niveis.length > 0) {
+      const salarios = concurso.niveis
+        .map((n) => {
+          if (typeof n.salario === "string") {
+            // Tenta extrair número de string como "R$ 3.181,39"
+            const match = n.salario.match(/[\d.,]+/);
+            if (match) {
+              return parseFloat(match[0].replace(/\./g, "").replace(",", "."));
+            }
+          } else if (typeof n.salario === "number") {
+            return n.salario;
+          }
+          return null;
+        })
+        .filter((s) => s !== null) as number[];
+
+      if (salarios.length > 0) {
+        const min = Math.min(...salarios);
+        const max = Math.max(...salarios);
+        if (min === max) {
+          return `R$ ${min.toFixed(2).replace(".", ",")}`;
+        }
+        return `R$ ${min.toFixed(2).replace(".", ",")} - R$ ${max.toFixed(2).replace(".", ",")}`;
+      }
+    }
+    return "A definir";
+  };
+
+  // Obter nível resumido para exibição
+  const obterNivelResumido = () => {
+    if (!concurso.niveis || concurso.niveis.length === 0)
+      return "Não informado";
+
+    const niveis = concurso.niveis.map((n) => {
+      switch (n.nivel) {
+        case "fundamental":
+          return "Fund";
+        case "medio":
+          return "Médio";
+        case "tecnico":
+          return "Téc";
+        case "superior":
+          return "Sup";
+        case "mestrado":
+          return "Mest";
+        case "doutorado":
+          return "Dout";
+        case "phd":
+          return "PhD";
+        default:
+          return n.nivel;
+      }
+    });
+
+    if (niveis.length === 1) return niveis[0];
+    if (niveis.includes("medio") && niveis.includes("superior"))
+      return "Médio/Sup";
+    return niveis.join("/");
+  };
+
   // Determinar status de estudo do usuário
   const getStudyStatus = () => {
     if (!progresso || progresso.progresso === 0) {
@@ -166,6 +249,9 @@ function ConcursoCard({
 
   // Formatar local
   const localFormatado = concurso.orgao || concurso.nome;
+  const totalVagas = calcularTotalVagas();
+  const faixaSalarial = obterFaixaSalarial();
+  const nivelResumido = obterNivelResumido();
 
   // Calcular número de matérias baseado na grade
   const numeroMaterias = concurso.grade
@@ -264,22 +350,24 @@ function ConcursoCard({
         </p>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-3 gap-2 mb-4">
+        <div className="grid grid-cols-2 gap-2 mb-4">
           <div className="text-center p-2 bg-gradient-to-br from-gray-50 to-white rounded-lg border border-gray-100 group-hover:shadow-md transition-all duration-300">
             <div className="text-sm font-bold text-gray-900">
-              {concurso.vagas || 0}
+              {totalVagas > 0 ? totalVagas : "-"}
             </div>
-            <div className="text-xs text-gray-500">Vagas</div>
+            <div className="text-xs text-gray-500">
+              {totalVagas > 0 ? "Vagas" : "Nº de vagas no Edital"}
+            </div>
           </div>
-          <div className="text-center p-2 bg-gradient-to-br from-gray-50 to-white rounded-lg border border-gray-100 group-hover:shadow-md transition-all duration-300">
+          {/* <div className="text-center p-2 bg-gradient-to-br from-gray-50 to-white rounded-lg border border-gray-100 group-hover:shadow-md transition-all duration-300">
             <div className="text-sm font-bold text-gray-900">
               {numeroMaterias}
             </div>
             <div className="text-xs text-gray-500">Matérias</div>
-          </div>
+          </div> */}
           <div className="text-center p-2 bg-gradient-to-br from-gray-50 to-white rounded-lg border border-gray-100 group-hover:shadow-md transition-all duration-300">
             <div className="text-sm font-bold text-gray-900">
-              {concurso.salario ? concurso.salario : "A definir"}
+              {faixaSalarial}
             </div>
             <div className="text-xs text-gray-500">Salário</div>
           </div>
@@ -337,13 +425,7 @@ function ConcursoCard({
         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
           <div className="flex items-center gap-1 text-sm text-gray-500">
             <Target className="w-4 h-4" />
-            <span>
-              {concurso.nivel === "ambos"
-                ? "Médio/Superior"
-                : concurso.nivel === "medio"
-                  ? "Nível Médio"
-                  : "Nível Superior"}
-            </span>
+            <span>{nivelResumido}</span>
           </div>
 
           <motion.div
@@ -390,10 +472,6 @@ function FilterChip({
   );
 }
 
-// Componente de Filtro de Localização
-// Componente de Filtro de Localização
-// Componente de Filtro de Localização
-// Componente de Filtro de Localização
 // Componente de Filtro de Localização
 function LocationFilter({
   userData,
@@ -606,12 +684,9 @@ export default function ConcursosPage() {
         const snapshot = await getDocs(collection(db, "concursos"));
         const lista = snapshot.docs.map((doc) => ({
           id: doc.id,
-          vagas: doc.data().vagas || 0,
-          salario: doc.data().salario,
           nome: doc.data().nome || "",
           banca: doc.data().banca || "",
-          nivel: doc.data().nivel || "",
-          areas: doc.data().areas || [],
+          thumbnail: doc.data().thumbnail || "📚",
           descricao: doc.data().descricao || "",
           ultimoEdital: doc.data().ultimoEdital || "",
           tags: doc.data().tags || [],
@@ -619,6 +694,9 @@ export default function ConcursosPage() {
           grade: doc.data().grade || {},
           locais: doc.data().locais || [],
           status: doc.data().status,
+          areas: doc.data().areas || [],
+          niveis: doc.data().niveis || [],
+          stats: doc.data().stats,
         })) as Concurso[];
 
         // Extrair áreas únicas
@@ -712,23 +790,19 @@ export default function ConcursosPage() {
   // Função para verificar se um concurso corresponde ao filtro de localização
   const matchesLocation = (concurso: Concurso) => {
     if (selectedLocation === "Todos os locais") return true;
-    if (selectedLocation === "Nacional") return true; // Nacional mostra todos
+    if (selectedLocation === "Nacional") return true;
 
-    // Verificar se o concurso tem locais definidos
     if (!concurso.locais || concurso.locais.length === 0) {
       return selectedLocation === "Nacional";
     }
 
-    // Verificar correspondência exata
     if (concurso.locais.includes(selectedLocation)) return true;
 
-    // Verificar "Qualquer cidade de {estado}"
     if (selectedLocation.startsWith("Qualquer cidade de ")) {
       const estado = selectedLocation.replace("Qualquer cidade de ", "");
       return concurso.locais.some((local) => local.endsWith(` - ${estado}`));
     }
 
-    // Verificar se é a cidade do usuário (com ou sem o sufixo)
     if (selectedLocation.includes("(minha cidade)")) {
       const cidadeSemSufixo = selectedLocation.replace(" (minha cidade)", "");
       return concurso.locais.includes(cidadeSemSufixo);
@@ -776,14 +850,18 @@ export default function ConcursosPage() {
 
   // Dados das métricas - SOMENTE concursos com status "aberto"
   const concursosAbertos = concursos.filter((c) => c.status === "aberto");
-  const totalVagasAbertas = concursosAbertos.reduce(
-    (acc, c) => acc + (c.vagas || 0),
-    0,
-  );
+  const totalVagasAbertas = concursosAbertos.reduce((acc, c) => {
+    if (c.niveis && c.niveis.length > 0) {
+      return acc + c.niveis.reduce((sum, nivel) => sum + (nivel.vagas || 0), 0);
+    }
+    return acc + (c.stats?.vagas || 0);
+  }, 0);
+
   const totalMaterias = concursos.reduce(
     (acc, c) => acc + Object.keys(c.grade || {}).length,
     0,
   );
+
   const totalTopicos = concursos.reduce((acc, c) => {
     const topicos = Object.values(c.grade || {}).flat();
     return acc + topicos.length;
@@ -920,7 +998,6 @@ export default function ConcursosPage() {
             <motion.div
               animate={{ rotate: showFilters ? 180 : 0 }}
               transition={{ duration: 0.3 }}
-              className="overflow-visible"
             >
               <ChevronDown className="w-4 h-4" />
             </motion.div>

@@ -10,6 +10,8 @@ import {
   where,
   getDocs,
   addDoc,
+  deleteDoc,
+  updateDoc,
   Timestamp,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
@@ -28,7 +30,11 @@ import {
   EyeOff,
   GripVertical,
   Save,
+  Loader2,
+  Search,
+  X,
 } from "lucide-react";
+import { NivelEnsino } from "@/types";
 
 interface Topico {
   id: string;
@@ -38,7 +44,21 @@ interface Topico {
   tempoEstimado: number;
   isPreview: boolean;
   audioUrl: string;
-  conteudoId: string; // ID para o JSON
+  conteudoId: string;
+  nivel?: NivelEnsino;
+}
+
+interface ConteudoCatalogo {
+  id: string;
+  titulo: string;
+  descricao?: string;
+  icone?: string;
+  materiaId?: string;
+  materiaNome?: string;
+  tempoEstimado?: number;
+  isPreview?: boolean;
+  audioUrl?: string;
+  nivel?: string;
 }
 
 export default function Topicospage() {
@@ -50,114 +70,107 @@ export default function Topicospage() {
   const [concurso, setConcurso] = useState<any>(null);
   const [materia, setMateria] = useState<any>(null);
   const [topicos, setTopicos] = useState<Topico[]>([]);
+  const [catalogo, setCatalogo] = useState<ConteudoCatalogo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showForm, setShowForm] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [editandoTopico, setEditandoTopico] = useState<any>(null);
   const [saving, setSaving] = useState(false);
-
-  // Estado do formulário
-  const [formData, setFormData] = useState({
-    titulo: "",
-    descricao: "",
-    tempoEstimado: 30,
-    isPreview: false,
-    audioUrl: "",
-    introducao: "",
-    topicos: [] as any[],
-    exercicios: [] as any[],
-    flashcards: [] as any[],
-  });
-
-  // Estado para abas do conteúdo
-  const [abaAtiva, setAbaAtiva] = useState("conteudo");
+  const [busca, setBusca] = useState("");
+  const [selectedTopico, setSelectedTopico] = useState<ConteudoCatalogo | null>(
+    null,
+  );
 
   useEffect(() => {
     async function carregarDados() {
-      // Carregar concurso
-      const concursoDoc = await getDoc(doc(db, "concursos", concursoId));
-      if (concursoDoc.exists()) {
-        setConcurso({ id: concursoDoc.id, ...concursoDoc.data() });
+      try {
+        // Carregar concurso
+        const concursoDoc = await getDoc(doc(db, "concursos", concursoId));
+        if (concursoDoc.exists()) {
+          setConcurso({ id: concursoDoc.id, ...concursoDoc.data() });
+        }
+
+        // Carregar matéria
+        const materiaDoc = await getDoc(doc(db, "materias", materiaId));
+        if (materiaDoc.exists()) {
+          setMateria({ id: materiaDoc.id, ...materiaDoc.data() });
+        }
+
+        // Carregar catálogo de conteúdos
+        const catalogoSnapshot = await getDocs(collection(db, "catalogo"));
+        const catalogoList = catalogoSnapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            titulo: data.titulo || "",
+            descricao: data.descricao || "",
+            icone: data.icone || "📚",
+            materiaId: data.materiaId || data.materia || "",
+            materiaNome: data.materiaNome || "",
+            tempoEstimado: data.tempoEstimado || 30,
+            isPreview: data.isPreview || false,
+            audioUrl: data.audioUrl || "",
+            nivel: data.nivel || "",
+          };
+        }) as ConteudoCatalogo[];
+
+        // Filtrar apenas conteúdos da matéria atual
+        const conteudosDaMateria = catalogoList.filter(
+          (item) =>
+            item.materiaId === materiaId || item.materiaNome === materia?.nome,
+        );
+
+        setCatalogo(conteudosDaMateria);
+
+        // Carregar tópicos da matéria
+        const topicosQuery = query(
+          collection(db, "topicos"),
+          where("materiaId", "==", materiaId),
+        );
+        const topicosSnapshot = await getDocs(topicosQuery);
+        const topicosList = topicosSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Topico[];
+
+        setTopicos(topicosList.sort((a, b) => a.ordem - b.ordem));
+      } catch (error) {
+        console.error("Erro ao carregar dados:", error);
+      } finally {
+        setLoading(false);
       }
-
-      // Carregar matéria
-      const materiaDoc = await getDoc(doc(db, "materias", materiaId));
-      if (materiaDoc.exists()) {
-        setMateria({ id: materiaDoc.id, ...materiaDoc.data() });
-      }
-
-      // Carregar tópicos
-      const topicosQuery = query(
-        collection(db, "topicos"),
-        where("materiaId", "==", materiaId),
-      );
-      const topicosSnapshot = await getDocs(topicosQuery);
-      const topicosList = topicosSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as Topico[];
-
-      setTopicos(topicosList.sort((a, b) => a.ordem - b.ordem));
-      setLoading(false);
     }
 
     carregarDados();
-  }, [concursoId, materiaId]);
+  }, [concursoId, materiaId, materia?.nome]);
 
-  const handleAddTopico = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddTopico = async () => {
+    if (!selectedTopico) return;
+
     setSaving(true);
 
     try {
       const novaOrdem = topicos.length + 1;
-      const topicoId = `${materia?.nome?.toLowerCase().replace(/\s+/g, "-")}-${formData.titulo.toLowerCase().replace(/\s+/g, "-")}`;
+      const topicoId = selectedTopico.id;
 
-      // 1. Salvar metadados no Firebase
-      const docRef = await addDoc(collection(db, "topicos"), {
-        concursoId,
-        materiaId,
-        titulo: formData.titulo,
-        descricao: formData.descricao,
-        tempoEstimado: formData.tempoEstimado,
-        isPreview: formData.isPreview,
-        audioUrl: formData.audioUrl || "",
-        ordem: novaOrdem,
-        conteudoId: topicoId,
-        createdAt: Timestamp.now(),
-      });
-
-      // 2. Salvar conteúdo completo no JSON (via API)
-      const response = await fetch("/api/salvar-conteudo", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          id: topicoId,
-          materia: materia?.nome,
-          titulo: formData.titulo,
-          introducao: formData.introducao,
-          topicos: formData.topicos,
-          exercicios: formData.exercicios,
-          flashcards: formData.flashcards,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error("Erro ao salvar arquivo JSON");
+      // Verificar se já existe
+      if (topicos.some((t) => t.conteudoId === topicoId)) {
+        alert("Este tópico já foi adicionado!");
+        return;
       }
 
-      // Limpar formulário
-      setShowForm(false);
-      setFormData({
-        titulo: "",
-        descricao: "",
-        tempoEstimado: 30,
-        isPreview: false,
-        audioUrl: "",
-        introducao: "",
-        topicos: [],
-        exercicios: [],
-        flashcards: [],
+      // 1. Salvar metadados no Firebase
+      await addDoc(collection(db, "topicos"), {
+        concursoId,
+        materiaId,
+        titulo: selectedTopico.titulo,
+        descricao: selectedTopico.descricao || "",
+        tempoEstimado: selectedTopico.tempoEstimado || 30,
+        isPreview: selectedTopico.isPreview || false,
+        audioUrl: selectedTopico.audioUrl || "",
+        ordem: novaOrdem,
+        conteudoId: topicoId,
+        nivel: selectedTopico.nivel || "",
+        createdAt: Timestamp.now(),
       });
 
       // Recarregar lista
@@ -172,7 +185,11 @@ export default function Topicospage() {
       })) as Topico[];
       setTopicos(topicosList.sort((a, b) => a.ordem - b.ordem));
 
-      alert("✅ Tópico salvo com sucesso!");
+      setShowModal(false);
+      setSelectedTopico(null);
+      setBusca("");
+
+      alert("✅ Tópico adicionado com sucesso!");
     } catch (error) {
       console.error("Erro ao adicionar tópico:", error);
       alert("❌ Erro ao adicionar tópico");
@@ -181,47 +198,57 @@ export default function Topicospage() {
     }
   };
 
-  // Funções auxiliares para adicionar itens
-  const addTopicoConteudo = () => {
-    setFormData({
-      ...formData,
-      topicos: [
-        ...formData.topicos,
-        { id: Date.now().toString(), titulo: "", html: "" },
-      ],
-    });
+  const handleRemoveTopico = async (topicoId: string) => {
+    if (!confirm("Remover este tópico da matéria?")) return;
+
+    try {
+      // Buscar o documento pelo conteudoId
+      const topicosQuery = query(
+        collection(db, "topicos"),
+        where("materiaId", "==", materiaId),
+        where("conteudoId", "==", topicoId),
+      );
+      const topicosSnapshot = await getDocs(topicosQuery);
+
+      if (!topicosSnapshot.empty) {
+        await deleteDoc(topicosSnapshot.docs[0].ref);
+      }
+
+      // Recarregar lista
+      const topicosQuery2 = query(
+        collection(db, "topicos"),
+        where("materiaId", "==", materiaId),
+      );
+      const topicosSnapshot2 = await getDocs(topicosQuery2);
+      const topicosList = topicosSnapshot2.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as Topico[];
+      setTopicos(topicosList.sort((a, b) => a.ordem - b.ordem));
+
+      alert("✅ Tópico removido com sucesso!");
+    } catch (error) {
+      console.error("Erro ao remover tópico:", error);
+      alert("❌ Erro ao remover tópico");
+    }
   };
 
-  const addExercicio = () => {
-    setFormData({
-      ...formData,
-      exercicios: [
-        ...formData.exercicios,
-        {
-          id: Date.now().toString(),
-          pergunta: "",
-          alternativas: ["", "", "", ""],
-          correta: 0,
-          explicacao: "",
-        },
-      ],
-    });
+  const handleEditTopico = async (topico: Topico) => {
+    // Por enquanto, apenas mostrar que será implementado
+    alert("Funcionalidade de edição em desenvolvimento");
   };
 
-  const addFlashcard = () => {
-    setFormData({
-      ...formData,
-      flashcards: [
-        ...formData.flashcards,
-        { id: Date.now().toString(), frente: "", verso: "" },
-      ],
-    });
-  };
+  const conteudosFiltrados = catalogo.filter(
+    (item) =>
+      busca === "" ||
+      item.titulo.toLowerCase().includes(busca.toLowerCase()) ||
+      item.descricao?.toLowerCase().includes(busca.toLowerCase()),
+  );
 
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500" />
+        <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
       </div>
     );
   }
@@ -249,532 +276,293 @@ export default function Topicospage() {
               {materia?.nome}
             </h1>
             <p className="text-gray-500 mt-1">
-              Gerencie os tópicos desta matéria
+              Selecione tópicos do catálogo para esta matéria
             </p>
           </div>
 
           <button
             onClick={() => {
-              setEditandoTopico(null);
-              setFormData({
-                titulo: "",
-                descricao: "",
-                tempoEstimado: 30,
-                isPreview: false,
-                audioUrl: "",
-                introducao: "",
-                topicos: [],
-                exercicios: [],
-                flashcards: [],
-              });
-              setShowForm(true);
+              setSelectedTopico(null);
+              setBusca("");
+              setShowModal(true);
             }}
             className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:shadow-lg transition"
           >
             <Plus className="w-5 h-5" />
-            Novo Tópico
+            Adicionar Tópico
           </button>
         </div>
       </div>
 
-      {/* Formulário de Novo Tópico */}
-      {showForm && (
-        <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 mb-6">
-          <h3 className="font-display font-bold text-gray-900 mb-4">
-            {editandoTopico ? "Editar Tópico" : "Novo Tópico"}
+      {/* Lista de Tópicos */}
+      {topicos.length === 0 ? (
+        <div className="bg-white rounded-2xl p-12 text-center border border-gray-100">
+          <FileText className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+          <h3 className="font-display text-xl font-bold text-gray-900 mb-2">
+            Nenhum tópico adicionado
           </h3>
-
-          <form onSubmit={handleAddTopico} className="space-y-4">
-            {/* Abas */}
-            <div className="flex border-b border-gray-200 mb-4">
-              <button
-                type="button"
-                onClick={() => setAbaAtiva("conteudo")}
-                className={`px-4 py-2 font-medium text-sm ${
-                  abaAtiva === "conteudo"
-                    ? "text-orange-500 border-b-2 border-orange-500"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                Conteúdo Principal
-              </button>
-              <button
-                type="button"
-                onClick={() => setAbaAtiva("topicos")}
-                className={`px-4 py-2 font-medium text-sm ${
-                  abaAtiva === "topicos"
-                    ? "text-orange-500 border-b-2 border-orange-500"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                Tópicos Internos
-              </button>
-              <button
-                type="button"
-                onClick={() => setAbaAtiva("exercicios")}
-                className={`px-4 py-2 font-medium text-sm ${
-                  abaAtiva === "exercicios"
-                    ? "text-orange-500 border-b-2 border-orange-500"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                Exercícios
-              </button>
-              <button
-                type="button"
-                onClick={() => setAbaAtiva("flashcards")}
-                className={`px-4 py-2 font-medium text-sm ${
-                  abaAtiva === "flashcards"
-                    ? "text-orange-500 border-b-2 border-orange-500"
-                    : "text-gray-500 hover:text-gray-700"
-                }`}
-              >
-                Flashcards
-              </button>
-            </div>
-
-            {/* Aba: Conteúdo Principal */}
-            {abaAtiva === "conteudo" && (
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Título do Tópico *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.titulo}
-                    onChange={(e) =>
-                      setFormData({ ...formData, titulo: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                    placeholder="Ex: Uso da Crase"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Descrição (opcional)
-                  </label>
-                  <textarea
-                    value={formData.descricao}
-                    onChange={(e) =>
-                      setFormData({ ...formData, descricao: e.target.value })
-                    }
-                    rows={2}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                    placeholder="Breve descrição do conteúdo..."
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tempo estimado (minutos)
-                    </label>
-                    <input
-                      type="number"
-                      value={formData.tempoEstimado}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          tempoEstimado: parseInt(e.target.value),
-                        })
-                      }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tipo de acesso
-                    </label>
-                    <div className="flex items-center gap-4 mt-2">
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          checked={!formData.isPreview}
-                          onChange={() =>
-                            setFormData({ ...formData, isPreview: false })
-                          }
-                          className="text-orange-500 focus:ring-orange-500"
-                        />
-                        <Lock className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">Assinantes</span>
-                      </label>
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          checked={formData.isPreview}
-                          onChange={() =>
-                            setFormData({ ...formData, isPreview: true })
-                          }
-                          className="text-orange-500 focus:ring-orange-500"
-                        />
-                        <Unlock className="w-4 h-4 text-green-500" />
-                        <span className="text-sm">Grátis (Preview)</span>
-                      </label>
-                    </div>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    URL do Áudio (opcional)
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.audioUrl}
-                    onChange={(e) =>
-                      setFormData({ ...formData, audioUrl: e.target.value })
-                    }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                    placeholder="/audios/portugues/crases.mp3"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Introdução (HTML)
-                  </label>
-                  <textarea
-                    value={formData.introducao}
-                    onChange={(e) =>
-                      setFormData({ ...formData, introducao: e.target.value })
-                    }
-                    rows={6}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 font-mono text-sm"
-                    placeholder="<p>Texto introdutório...</p>"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Aba: Tópicos Internos */}
-            {abaAtiva === "topicos" && (
-              <div className="space-y-4">
-                {formData.topicos.map((topico, index) => (
-                  <div key={topico.id} className="bg-gray-50 p-4 rounded-lg">
-                    <div className="flex justify-between mb-2">
-                      <h4 className="font-medium">Tópico {index + 1}</h4>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const novos = [...formData.topicos];
-                          novos.splice(index, 1);
-                          setFormData({ ...formData, topicos: novos });
-                        }}
-                        className="text-red-500 text-sm"
-                      >
-                        Remover
-                      </button>
-                    </div>
-                    <input
-                      type="text"
-                      placeholder="Título do tópico"
-                      value={topico.titulo}
-                      onChange={(e) => {
-                        const novos = [...formData.topicos];
-                        novos[index].titulo = e.target.value;
-                        setFormData({ ...formData, topicos: novos });
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2"
-                    />
-                    <textarea
-                      placeholder="Conteúdo HTML"
-                      value={topico.html}
-                      onChange={(e) => {
-                        const novos = [...formData.topicos];
-                        novos[index].html = e.target.value;
-                        setFormData({ ...formData, topicos: novos });
-                      }}
-                      rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm"
-                    />
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={addTopicoConteudo}
-                  className="text-orange-500 text-sm flex items-center gap-1"
+          <p className="text-gray-500 mb-6">
+            Clique em "Adicionar Tópico" para selecionar conteúdos do catálogo
+          </p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="w-16 p-4 text-center">#</th>
+                <th className="text-left p-4 text-sm font-medium text-gray-600">
+                  Tópico
+                </th>
+                <th className="text-left p-4 text-sm font-medium text-gray-600">
+                  Tempo
+                </th>
+                <th className="text-left p-4 text-sm font-medium text-gray-600">
+                  Acesso
+                </th>
+                <th className="text-left p-4 text-sm font-medium text-gray-600">
+                  Áudio
+                </th>
+                <th className="text-left p-4 text-sm font-medium text-gray-600">
+                  Nível
+                </th>
+                <th className="text-left p-4 text-sm font-medium text-gray-600">
+                  Ações
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              {topicos.map((topico, index) => (
+                <tr
+                  key={topico.id}
+                  className="border-b border-gray-100 hover:bg-gray-50"
                 >
-                  <Plus className="w-4 h-4" />
-                  Adicionar tópico
-                </button>
-              </div>
-            )}
-
-            {/* Aba: Exercícios */}
-            {abaAtiva === "exercicios" && (
-              <div className="space-y-4">
-                {formData.exercicios.map((ex, index) => (
-                  <div key={ex.id} className="bg-gray-50 p-4 rounded-lg">
-                    <div className="flex justify-between mb-2">
-                      <h4 className="font-medium">Exercício {index + 1}</h4>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const novos = [...formData.exercicios];
-                          novos.splice(index, 1);
-                          setFormData({ ...formData, exercicios: novos });
-                        }}
-                        className="text-red-500 text-sm"
-                      >
-                        Remover
-                      </button>
+                  <td className="p-4 text-center text-gray-500">
+                    <GripVertical className="w-4 h-4 inline text-gray-400" />
+                    {topico.ordem}
+                  </td>
+                  <td className="p-4">
+                    <div>
+                      <p className="font-medium text-gray-900">
+                        {topico.titulo}
+                      </p>
+                      {topico.descricao && (
+                        <p className="text-sm text-gray-500">
+                          {topico.descricao}
+                        </p>
+                      )}
                     </div>
-                    <input
-                      type="text"
-                      placeholder="Pergunta"
-                      value={ex.pergunta}
-                      onChange={(e) => {
-                        const novos = [...formData.exercicios];
-                        novos[index].pergunta = e.target.value;
-                        setFormData({ ...formData, exercicios: novos });
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2"
-                    />
-                    {ex.alternativas.map((alt: string, i: number) => (
-                      <div key={i} className="flex gap-2 mb-2">
-                        <input
-                          type="radio"
-                          name={`correta-${ex.id}`}
-                          checked={ex.correta === i}
-                          onChange={() => {
-                            const novos = [...formData.exercicios];
-                            novos[index].correta = i;
-                            setFormData({ ...formData, exercicios: novos });
-                          }}
-                        />
-                        <input
-                          type="text"
-                          placeholder={`Alternativa ${String.fromCharCode(65 + i)}`}
-                          value={alt}
-                          onChange={(e) => {
-                            const novos = [...formData.exercicios];
-                            novos[index].alternativas[i] = e.target.value;
-                            setFormData({ ...formData, exercicios: novos });
-                          }}
-                          className="flex-1 px-3 py-1 border border-gray-300 rounded-lg"
-                        />
-                      </div>
-                    ))}
-                    <textarea
-                      placeholder="Explicação"
-                      value={ex.explicacao}
-                      onChange={(e) => {
-                        const novos = [...formData.exercicios];
-                        novos[index].explicacao = e.target.value;
-                        setFormData({ ...formData, exercicios: novos });
-                      }}
-                      rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    />
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={addExercicio}
-                  className="text-orange-500 text-sm flex items-center gap-1"
-                >
-                  <Plus className="w-4 h-4" />
-                  Adicionar exercício
-                </button>
-              </div>
-            )}
-
-            {/* Aba: Flashcards */}
-            {abaAtiva === "flashcards" && (
-              <div className="space-y-4">
-                {formData.flashcards.map((card, index) => (
-                  <div key={card.id} className="bg-gray-50 p-4 rounded-lg">
-                    <div className="flex justify-between mb-2">
-                      <h4 className="font-medium">Flashcard {index + 1}</h4>
+                  </td>
+                  <td className="p-4">
+                    <span className="flex items-center gap-1 text-sm text-gray-600">
+                      <Clock className="w-4 h-4" />
+                      {topico.tempoEstimado} min
+                    </span>
+                  </td>
+                  <td className="p-4">
+                    {topico.isPreview ? (
+                      <span className="flex items-center gap-1 text-sm text-green-600">
+                        <Eye className="w-4 h-4" />
+                        Grátis
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-sm text-gray-400">
+                        <EyeOff className="w-4 h-4" />
+                        Assinantes
+                      </span>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    {topico.audioUrl ? (
+                      <span className="flex items-center gap-1 text-sm text-orange-500">
+                        <Headphones className="w-4 h-4" />
+                        Sim
+                      </span>
+                    ) : (
+                      <span className="text-sm text-gray-300">Não</span>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    {topico.nivel && (
+                      <span className="text-xs bg-purple-100 text-purple-600 px-2 py-1 rounded-full">
+                        {topico.nivel}
+                      </span>
+                    )}
+                  </td>
+                  <td className="p-4">
+                    <div className="flex gap-2">
                       <button
-                        type="button"
-                        onClick={() => {
-                          const novos = [...formData.flashcards];
-                          novos.splice(index, 1);
-                          setFormData({ ...formData, flashcards: novos });
-                        }}
-                        className="text-red-500 text-sm"
+                        onClick={() => handleEditTopico(topico)}
+                        className="p-2 hover:bg-orange-100 rounded-lg transition text-orange-600"
                       >
-                        Remover
+                        <Edit className="w-4 h-4" />
                       </button>
+                      <button
+                        onClick={() => handleRemoveTopico(topico.conteudoId)}
+                        className="p-2 hover:bg-red-100 rounded-lg transition text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                      <Link
+                        href={`/materia/${materia?.nome?.toLowerCase().replace(/\s+/g, "-")}/topico/${topico.conteudoId}`}
+                        target="_blank"
+                        className="p-2 hover:bg-blue-100 rounded-lg transition text-blue-600"
+                      >
+                        <Eye className="w-4 h-4" />
+                      </Link>
                     </div>
-                    <input
-                      type="text"
-                      placeholder="Frente"
-                      value={card.frente}
-                      onChange={(e) => {
-                        const novos = [...formData.flashcards];
-                        novos[index].frente = e.target.value;
-                        setFormData({ ...formData, flashcards: novos });
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2"
-                    />
-                    <textarea
-                      placeholder="Verso"
-                      value={card.verso}
-                      onChange={(e) => {
-                        const novos = [...formData.flashcards];
-                        novos[index].verso = e.target.value;
-                        setFormData({ ...formData, flashcards: novos });
-                      }}
-                      rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    />
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={addFlashcard}
-                  className="text-orange-500 text-sm flex items-center gap-1"
-                >
-                  <Plus className="w-4 h-4" />
-                  Adicionar flashcard
-                </button>
-              </div>
-            )}
-
-            {/* Botões do formulário */}
-            <div className="flex justify-end gap-2 pt-4 border-t">
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg flex items-center gap-2 disabled:opacity-50"
-              >
-                {saving ? (
-                  <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4" />
-                    Salvar Tópico
-                  </>
-                )}
-              </button>
-            </div>
-          </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
-      {/* Lista de Tópicos */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th className="w-16 p-4 text-center">#</th>
-              <th className="text-left p-4 text-sm font-medium text-gray-600">
-                Tópico
-              </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-600">
-                Tempo
-              </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-600">
-                Acesso
-              </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-600">
-                Áudio
-              </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-600">
-                JSON
-              </th>
-              <th className="text-left p-4 text-sm font-medium text-gray-600">
-                Ações
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {topicos.map((topico, index) => (
-              <tr
-                key={topico.id}
-                className="border-b border-gray-100 hover:bg-gray-50"
-              >
-                <td className="p-4 text-center text-gray-500">
-                  <GripVertical className="w-4 h-4 inline text-gray-400" />
-                  {topico.ordem}
-                </td>
-                <td className="p-4">
-                  <div>
-                    <p className="font-medium text-gray-900">{topico.titulo}</p>
-                    {topico.descricao && (
-                      <p className="text-sm text-gray-500">
-                        {topico.descricao}
-                      </p>
-                    )}
-                  </div>
-                </td>
-                <td className="p-4">
-                  <span className="flex items-center gap-1 text-sm text-gray-600">
-                    <Clock className="w-4 h-4" />
-                    {topico.tempoEstimado} min
-                  </span>
-                </td>
-                <td className="p-4">
-                  {topico.isPreview ? (
-                    <span className="flex items-center gap-1 text-sm text-green-600">
-                      <Eye className="w-4 h-4" />
-                      Grátis
-                    </span>
+      {/* Modal de Seleção de Tópicos */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            {/* Header do Modal */}
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-display font-bold text-xl text-gray-900">
+                  Selecionar Tópico do Catálogo
+                </h3>
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="p-2 hover:bg-gray-100 rounded-lg transition"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Busca */}
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Buscar tópicos..."
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+            </div>
+
+            {/* Lista de Conteúdos */}
+            <div className="p-6 overflow-y-auto max-h-[50vh]">
+              {conteudosFiltrados.length === 0 ? (
+                <div className="text-center py-12">
+                  <FileText className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500">
+                    {busca
+                      ? "Nenhum tópico encontrado com essa busca"
+                      : "Nenhum conteúdo cadastrado para esta matéria"}
+                  </p>
+                  <Link
+                    href="/admin/catalogo/novo"
+                    className="text-orange-500 text-sm hover:underline mt-2 inline-block"
+                  >
+                    Criar novo conteúdo no catálogo
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {conteudosFiltrados.map((conteudo) => {
+                    const isSelected = selectedTopico?.id === conteudo.id;
+                    const isAlreadyAdded = topicos.some(
+                      (t) => t.conteudoId === conteudo.id,
+                    );
+
+                    return (
+                      <div
+                        key={conteudo.id}
+                        onClick={() =>
+                          !isAlreadyAdded && setSelectedTopico(conteudo)
+                        }
+                        className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer ${
+                          isAlreadyAdded
+                            ? "border-gray-200 bg-gray-50 opacity-50 cursor-not-allowed"
+                            : isSelected
+                              ? "border-orange-500 bg-orange-50"
+                              : "border-gray-200 hover:border-orange-200"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl">
+                            {conteudo.icone || "📚"}
+                          </span>
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {conteudo.titulo}
+                            </p>
+                            {conteudo.descricao && (
+                              <p className="text-sm text-gray-500">
+                                {conteudo.descricao}
+                              </p>
+                            )}
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-gray-400">
+                                {conteudo.tempoEstimado} min
+                              </span>
+                              {conteudo.isPreview && (
+                                <span className="text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full">
+                                  FREE
+                                </span>
+                              )}
+                              {conteudo.nivel && (
+                                <span className="text-xs bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full">
+                                  {conteudo.nivel}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {isAlreadyAdded && (
+                          <span className="text-xs bg-gray-200 text-gray-600 px-2 py-1 rounded-full">
+                            Já adicionado
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-6 border-t border-gray-200 bg-gray-50">
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => setShowModal(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-100 transition"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleAddTopico}
+                  disabled={!selectedTopico || saving}
+                  className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg flex items-center gap-2 disabled:opacity-50"
+                >
+                  {saving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Adicionando...
+                    </>
                   ) : (
-                    <span className="flex items-center gap-1 text-sm text-gray-400">
-                      <EyeOff className="w-4 h-4" />
-                      Assinantes
-                    </span>
+                    <>
+                      <Plus className="w-4 h-4" />
+                      Adicionar Tópico
+                    </>
                   )}
-                </td>
-                <td className="p-4">
-                  {topico.audioUrl ? (
-                    <span className="flex items-center gap-1 text-sm text-orange-500">
-                      <Headphones className="w-4 h-4" />
-                      Sim
-                    </span>
-                  ) : (
-                    <span className="text-sm text-gray-300">Não</span>
-                  )}
-                </td>
-                <td className="p-4">
-                  <span className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full">
-                    {topico.conteudoId}.json
-                  </span>
-                </td>
-                <td className="p-4">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        // Carregar dados para edição
-                        setEditandoTopico(topico);
-                        // Aqui você carregaria o JSON também
-                        setShowForm(true);
-                      }}
-                      className="p-2 hover:bg-orange-100 rounded-lg transition text-orange-600"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <Link
-                      href={`/materia/${materia?.nome?.toLowerCase().replace(/\s+/g, "-")}/topico/${topico.conteudoId}`}
-                      target="_blank"
-                      className="p-2 hover:bg-blue-100 rounded-lg transition text-blue-600"
-                    >
-                      <Eye className="w-4 h-4" />
-                    </Link>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

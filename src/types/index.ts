@@ -11,6 +11,12 @@ export interface Cargo {
     requisitos?: string[];
 }
 
+export interface NivelInfo {
+    nivel: NivelEnsino;
+    vagas: number;
+    salario: string | number;
+}
+
 export interface Concurso {
     id: string;
     nome: string;
@@ -20,8 +26,8 @@ export interface Concurso {
     thumbnail: string;
     cor: string;
     status: 'aberto' | 'previsto' | 'fechado';
-    niveis: NivelEnsino[];           // Níveis disponíveis no concurso
-    cargos: Cargo[];                 // Lista de cargos
+    niveis: NivelInfo[];
+    cargos: Cargo[];
     edital?: string;
     ultimoEdital: string;
     stats: {

@@ -21,7 +21,6 @@ import {
   ChevronRight,
   BookOpen,
   Clock,
-  Award,
   Lock,
   Headphones,
   FileText,
@@ -34,27 +33,33 @@ import {
   Sparkles,
   TrendingUp,
   Target,
-  Calendar,
   GraduationCap,
-  Bookmark,
-  Share2,
   Layers,
+  MapPin,
+  Calendar,
 } from "lucide-react";
+import { NivelEnsino } from "@/types";
+import { formatarNivel, getNivelIcone } from "@/lib/utils/formatadores";
+
+// Interface baseada na estrutura REAL do Firebase
+interface NivelInfo {
+  nivel: NivelEnsino;
+  vagas: number;
+  salario: string | number;
+}
 
 interface Concurso {
   id: string;
   nome: string;
   banca: string;
-  nivel: string;
   thumbnail: string;
   cor: string;
   descricao: string;
   orgao?: string;
-  vagas?: number;
-  salario?: string;
   edital?: string;
-  status: string;
+  status: "aberto" | "previsto" | "fechado";
   areas?: string[];
+  niveis: NivelInfo[]; // ← Array de objetos, não de strings
   stats?: {
     materias: number;
     topicos: number;
@@ -62,6 +67,16 @@ interface Concurso {
     horas: number;
   };
   grade?: Record<string, string[]>;
+  precoInscricao?: string;
+  inscricoes?: {
+    inicio: string;
+    fim: string;
+  };
+  provas?: {
+    data: string;
+  };
+  locais?: string[];
+  ultimoEdital?: string;
 }
 
 interface Materia {
@@ -92,6 +107,11 @@ export default function ConcursoDetalhePage() {
   const { user } = useAuth();
   const concursoId = params.id as string;
 
+  // Estado para nível selecionado (apenas para filtrar a grade)
+  const [nivelSelecionado, setNivelSelecionado] = useState<NivelEnsino | "">(
+    "",
+  );
+
   const [concurso, setConcurso] = useState<Concurso | null>(null);
   const [materias, setMaterias] = useState<Materia[]>([]);
   const [topicosPorMateria, setTopicosPorMateria] = useState<
@@ -99,6 +119,7 @@ export default function ConcursoDetalhePage() {
   >({});
   const [progresso, setProgresso] = useState<Record<string, Progresso>>({});
   const [loading, setLoading] = useState(true);
+  const [loadingGrade, setLoadingGrade] = useState(false);
   const [materiaExpandida, setMateriaExpandida] = useState<string | null>(null);
   const [proximoTopico, setProximoTopico] = useState<{
     materia: string;
@@ -113,8 +134,12 @@ export default function ConcursoDetalhePage() {
   } | null>(null);
 
   const { nivelAcesso } = useAcesso();
-  const { progresso: progressoReal, loading: loadingProgresso } =
-    useProgresso();
+  const {
+    progresso: progressoReal,
+    loading: loadingProgresso,
+    getProgressoPorConcurso,
+    isTopicoConcluido,
+  } = useProgresso();
 
   // Função para encontrar o próximo tópico a estudar
   const encontrarProximoTopico = () => {
@@ -156,6 +181,42 @@ export default function ConcursoDetalhePage() {
     return null;
   };
 
+  // Calcular total de vagas a partir dos níveis
+  const calcularTotalVagas = () => {
+    if (!concurso?.niveis || concurso.niveis.length === 0) return 0;
+    return concurso.niveis.reduce((acc, nivel) => acc + (nivel.vagas || 0), 0);
+  };
+
+  // Obter faixa salarial
+  const obterFaixaSalarial = () => {
+    if (!concurso?.niveis || concurso.niveis.length === 0) return "A definir";
+
+    const salarios = concurso.niveis
+      .map((n) => {
+        if (typeof n.salario === "string") {
+          const match = n.salario.match(/[\d.,]+/);
+          if (match) {
+            return parseFloat(match[0].replace(/\./g, "").replace(",", "."));
+          }
+        } else if (typeof n.salario === "number") {
+          return n.salario;
+        }
+        return null;
+      })
+      .filter((s) => s !== null) as number[];
+
+    if (salarios.length > 0) {
+      const min = Math.min(...salarios);
+      const max = Math.max(...salarios);
+      if (min === max) {
+        return `R$ ${min.toFixed(2).replace(".", ",")}`;
+      }
+      return `R$ ${min.toFixed(2).replace(".", ",")} - R$ ${max.toFixed(2).replace(".", ",")}`;
+    }
+    return "A definir";
+  };
+
+  // Carregar dados do concurso
   useEffect(() => {
     async function carregarDados() {
       if (!concursoId) return;
@@ -179,98 +240,13 @@ export default function ConcursoDetalhePage() {
         } as Concurso;
         setConcurso(concursoData);
 
-        const materiasIds = Object.keys(concursoData.grade || {});
-
-        if (materiasIds.length > 0) {
-          const materiasQuery = query(
-            collection(db, "materias"),
-            where("__name__", "in", materiasIds.slice(0, 10)),
-          );
-          const materiasSnap = await getDocs(materiasQuery);
-
-          const materiasList = materiasSnap.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as Materia[];
-
-          materiasList.sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
-          setMaterias(materiasList);
-
-          const topicosTemp: Record<string, TopicoInfo[]> = {};
-
-          for (const materiaId of materiasIds) {
-            const topicosIds = concursoData.grade?.[materiaId] || [];
-
-            if (topicosIds.length > 0) {
-              const topicosQuery = query(
-                collection(db, "catalogo"),
-                where("id", "in", topicosIds.slice(0, 10)),
-              );
-              const topicosSnap = await getDocs(topicosQuery);
-
-              topicosTemp[materiaId] = topicosSnap.docs.map((doc) => {
-                const data = doc.data();
-                return {
-                  id: doc.id,
-                  titulo: data.titulo || "",
-                  tempoEstimado: data.tempoEstimado || 30,
-                  isPreview: data.isPreview || false,
-                  audioUrl: data.audioUrl,
-                  materiaId: materiaId,
-                };
-              }) as TopicoInfo[];
-            } else {
-              topicosTemp[materiaId] = [];
-            }
-          }
-
-          setTopicosPorMateria(topicosTemp);
-
-          // Carregar progresso real
-          if (user && progressoReal) {
-            const progressoMap: Record<string, Progresso> = {};
-
-            Object.keys(topicosTemp).forEach((materiaId) => {
-              topicosTemp[materiaId].forEach((topico) => {
-                const prog = progressoReal[topico.id];
-                if (prog) {
-                  progressoMap[topico.id] = {
-                    concluido: prog.status === "concluido",
-                    progresso: prog.progresso,
-                    ultimoAcesso: prog.ultimoAcesso,
-                  };
-                }
-              });
-            });
-
-            setProgresso(progressoMap);
-
-            // Encontrar próximo tópico
-            const proximo = encontrarProximoTopico();
-            setProximoTopico(proximo);
-
-            // Encontrar último tópico estudado
-            const topicosArray = Object.values(topicosTemp).flat();
-            const topicosComProgresso = topicosArray
-              .map((t) => ({ ...t, prog: progressoReal[t.id] }))
-              .filter(
-                (t) => t.prog && t.prog.progresso > 0 && t.prog.progresso < 100,
-              )
-              .sort((a, b) => {
-                const dataA = a.prog?.ultimoAcesso?.getTime() || 0;
-                const dataB = b.prog?.ultimoAcesso?.getTime() || 0;
-                return dataB - dataA;
-              });
-
-            if (topicosComProgresso.length > 0) {
-              const ultimo = topicosComProgresso[0];
-              setUltimoTopico({
-                materia: ultimo.materiaId,
-                topico: ultimo.id,
-                titulo: ultimo.titulo,
-              });
-            }
-          }
+        // Se tem níveis e nenhum selecionado, selecionar o primeiro
+        if (
+          concursoData.niveis &&
+          concursoData.niveis.length > 0 &&
+          !nivelSelecionado
+        ) {
+          setNivelSelecionado(concursoData.niveis[0].nivel);
         }
       } catch (error) {
         console.error("Erro ao carregar dados do concurso:", error);
@@ -280,7 +256,174 @@ export default function ConcursoDetalhePage() {
     }
 
     carregarDados();
-  }, [concursoId, user, progressoReal]);
+  }, [concursoId]);
+
+  // Carregar grade do nível selecionado
+  useEffect(() => {
+    async function carregarGradeDoNivel() {
+      if (!concurso || !nivelSelecionado) return;
+
+      try {
+        setLoadingGrade(true);
+        setMateriaExpandida(null); // Fecha todas as matérias ao trocar de nível
+
+        // Buscar grade do nível
+        const gradeRef = doc(db, "grades", `${concursoId}_${nivelSelecionado}`);
+        const gradeSnap = await getDoc(gradeRef);
+
+        let materiasIds: string[] = [];
+        let gradeData: Record<string, string[]> = {};
+
+        if (gradeSnap.exists()) {
+          const data = gradeSnap.data();
+          // Converter array de matérias para o formato antigo
+          if (data.materias && Array.isArray(data.materias)) {
+            // 🔥 FILTRAR itens vazios ou inválidos
+            const materiasValidas = data.materias.filter(
+              (m: any) => m && m.id && typeof m.id === "string" && m.id !== "",
+            );
+
+            materiasValidas.forEach((m: any) => {
+              if (m.id) {
+                gradeData[m.id] = m.topicos || [];
+                materiasIds.push(m.id);
+              }
+            });
+          }
+        } else {
+          // Fallback para o formato antigo
+          gradeData = concurso.grade || {};
+          materiasIds = Object.keys(gradeData).filter(
+            (id) => id && id !== "undefined" && id !== "",
+          );
+        }
+
+        // 🔥 SE NÃO TIVER MATÉRIAS, MOSTRA VAZIO
+        if (materiasIds.length === 0) {
+          setMaterias([]);
+          setTopicosPorMateria({});
+          setLoadingGrade(false);
+          return;
+        }
+
+        // Buscar matérias
+        const materiasQuery = query(
+          collection(db, "materias"),
+          where("__name__", "in", materiasIds.slice(0, 10)),
+        );
+        const materiasSnap = await getDocs(materiasQuery);
+
+        const materiasList = materiasSnap.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Materia[];
+
+        materiasList.sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+        setMaterias(materiasList);
+
+        // Buscar tópicos
+        const topicosTemp: Record<string, TopicoInfo[]> = {};
+
+        for (const materiaId of materiasIds) {
+          // 🔥 VERIFICAÇÃO DE SEGURANÇA
+          if (!materiaId || materiaId === "undefined" || materiaId === "") {
+            console.warn(`⚠️ Ignorando materiaId inválido: ${materiaId}`);
+            continue;
+          }
+
+          const topicosIds = gradeData[materiaId] || [];
+
+          if (!topicosIds || topicosIds.length === 0) {
+            topicosTemp[materiaId] = [];
+            continue;
+          }
+
+          // 🔥 FILTRAR IDs INVÁLIDOS
+          const topicosValidos = topicosIds.filter(
+            (id: string) => id && id !== "undefined" && id !== "",
+          );
+
+          if (topicosValidos.length === 0) {
+            topicosTemp[materiaId] = [];
+            continue;
+          }
+
+          const topicosQuery = query(
+            collection(db, "catalogo"),
+            where("id", "in", topicosValidos.slice(0, 10)),
+          );
+          const topicosSnap = await getDocs(topicosQuery);
+
+          topicosTemp[materiaId] = topicosSnap.docs.map((doc) => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              titulo: data.titulo || "",
+              tempoEstimado: data.tempoEstimado || 30,
+              isPreview: data.isPreview || false,
+              audioUrl: data.audioUrl,
+              materiaId: materiaId,
+            };
+          }) as TopicoInfo[];
+        }
+
+        setTopicosPorMateria(topicosTemp);
+
+        // Carregar progresso real
+        if (user && progressoReal) {
+          const progressoMap: Record<string, Progresso> = {};
+          const progressoDoConcurso = getProgressoPorConcurso(concursoId); // ← NOVO
+
+          Object.keys(topicosTemp).forEach((materiaId) => {
+            topicosTemp[materiaId].forEach((topico) => {
+              const prog = progressoDoConcurso[topico.id];
+              if (prog) {
+                progressoMap[topico.id] = {
+                  concluido: prog.status === "concluido",
+                  progresso: prog.progresso,
+                  ultimoAcesso: prog.ultimoAcesso,
+                };
+              }
+            });
+          });
+
+          setProgresso(progressoMap);
+
+          // Encontrar próximo tópico
+          const proximo = encontrarProximoTopico();
+          setProximoTopico(proximo);
+
+          // Encontrar último tópico estudado
+          const topicosArray = Object.values(topicosTemp).flat();
+          const topicosComProgresso = topicosArray
+            .map((t) => ({ ...t, prog: progressoReal[t.id] }))
+            .filter(
+              (t) => t.prog && t.prog.progresso > 0 && t.prog.progresso < 100,
+            )
+            .sort((a, b) => {
+              const dataA = a.prog?.ultimoAcesso?.getTime() || 0;
+              const dataB = b.prog?.ultimoAcesso?.getTime() || 0;
+              return dataB - dataA;
+            });
+
+          if (topicosComProgresso.length > 0) {
+            const ultimo = topicosComProgresso[0];
+            setUltimoTopico({
+              materia: ultimo.materiaId,
+              topico: ultimo.id,
+              titulo: ultimo.titulo,
+            });
+          }
+        }
+      } catch (error) {
+        console.error("Erro ao carregar grade do nível:", error);
+      } finally {
+        setLoadingGrade(false);
+      }
+    }
+
+    carregarGradeDoNivel();
+  }, [concurso, nivelSelecionado, user, progressoReal, concursoId]);
 
   // Recalcular próximo tópico quando progresso mudar
   useEffect(() => {
@@ -313,6 +456,12 @@ export default function ConcursoDetalhePage() {
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^\w\s]/gi, "")
       .replace(/\s+/g, "-");
+  };
+
+  // Handler para mudar de nível (agora só filtra a grade)
+  const handleNivelChange = (nivel: NivelEnsino) => {
+    console.log("🔵 Filtrando grade para nível:", nivel);
+    setNivelSelecionado(nivel);
   };
 
   if (loading || loadingProgresso) {
@@ -349,6 +498,9 @@ export default function ConcursoDetalhePage() {
     );
   }
 
+  const totalVagas = calcularTotalVagas();
+  const faixaSalarial = obterFaixaSalarial();
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
       {/* Header Moderno */}
@@ -370,15 +522,6 @@ export default function ConcursoDetalhePage() {
                   {concurso.nome}
                 </h1>
               </div>
-            </div>
-
-            <div className="flex items-center gap-1 sm:gap-2">
-              <button className="p-1.5 lg:p-2 rounded-xl bg-gray-100 text-gray-600 hover:bg-orange-500 hover:text-white transition-all duration-300">
-                <Bookmark className="w-4 h-4 lg:w-5 lg:h-5" />
-              </button>
-              <button className="p-1.5 lg:p-2 rounded-xl bg-gray-100 text-gray-600 hover:bg-orange-500 hover:text-white transition-all duration-300">
-                <Share2 className="w-4 h-4 lg:w-5 lg:h-5" />
-              </button>
             </div>
           </div>
         </div>
@@ -409,14 +552,12 @@ export default function ConcursoDetalhePage() {
                     </div>
                   </div>
 
-                  {/* Tags - Agora responsivas */}
+                  {/* Tags */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:flex lg:flex-wrap gap-2 mb-4 lg:mb-6">
-                    {/* Banca */}
-                    <span className="inline-flex items-center px-3 lg:px-4 py-1.5 lg:py-2 bg-orange-50 text-orange-600 rounded-xl text-xs lg:text-sm font-medium w-full sm:w-auto">
+                    <span className="inline-flex items-center px-3 lg:px-4 py-1.5 lg:py-2 bg-orange-50 text-gray-800 rounded-xl text-xs lg:text-sm font-medium w-full sm:w-auto">
                       {concurso.banca}
                     </span>
 
-                    {/* Órgão */}
                     {concurso.orgao && (
                       <span className="inline-flex items-center gap-1 px-3 lg:px-4 py-1.5 lg:py-2 bg-gray-100 text-gray-600 rounded-xl text-xs lg:text-sm font-medium w-full sm:w-auto">
                         <Briefcase className="w-3 h-3 lg:w-4 lg:h-4" />
@@ -424,24 +565,27 @@ export default function ConcursoDetalhePage() {
                       </span>
                     )}
 
-                    {/* Vagas */}
-                    {concurso.vagas && concurso.vagas > 0 && (
+                    {totalVagas > 0 && (
                       <span className="inline-flex items-center gap-1 px-3 lg:px-4 py-1.5 lg:py-2 bg-gray-100 text-gray-600 rounded-xl text-xs lg:text-sm font-medium w-full sm:w-auto">
                         <Users className="w-3 h-3 lg:w-4 lg:h-4" />
-                        {concurso.vagas}{" "}
-                        {concurso.vagas === 1 ? "vaga" : "vagas"}
+                        {totalVagas} {totalVagas === 1 ? "vaga" : "vagas"}
                       </span>
                     )}
 
-                    {/* Salário */}
-                    {concurso.salario && (
+                    {/* {faixaSalarial !== "A definir" && (
                       <span className="inline-flex items-center gap-1 px-3 lg:px-4 py-1.5 lg:py-2 bg-gray-100 text-gray-600 rounded-xl text-xs lg:text-sm font-medium w-full sm:w-auto">
                         <DollarSign className="w-3 h-3 lg:w-4 lg:h-4" />
-                        {concurso.salario}
+                        {faixaSalarial}
                       </span>
-                    )}
+                    )} */}
 
-                    {/* Status */}
+                    {/* {concurso.precoInscricao && (
+                      <span className="inline-flex items-center gap-1 px-3 lg:px-4 py-1.5 lg:py-2 bg-gray-100 text-gray-600 rounded-xl text-xs lg:text-sm font-medium w-full sm:w-auto">
+                        <FileText className="w-3 h-3 lg:w-4 lg:h-4" />
+                        Valor da Inscrição: R$ {concurso.precoInscricao}
+                      </span>
+                    )} */}
+
                     {concurso.status && (
                       <span
                         className={`inline-flex items-center gap-1 px-3 lg:px-4 py-1.5 lg:py-2 rounded-xl text-xs lg:text-sm font-medium w-full sm:w-auto ${
@@ -467,6 +611,61 @@ export default function ConcursoDetalhePage() {
                       </span>
                     )}
                   </div>
+
+                  {/* Datas importantes */}
+                  {/* {(concurso.inscricoes?.inicio ||
+                    concurso.inscricoes?.fim ||
+                    concurso.provas?.data) && (
+                    <div className="flex flex-wrap gap-4 mb-4">
+                      {concurso.inscricoes?.inicio && (
+                        <div className="flex items-center gap-1 text-xs text-gray-600">
+                          <Calendar className="w-3 h-3" />
+                          Início:{" "}
+                          {new Date(
+                            concurso.inscricoes.inicio,
+                          ).toLocaleDateString("pt-BR")}
+                        </div>
+                      )}
+                      {concurso.inscricoes?.fim && (
+                        <div className="flex items-center gap-1 text-xs text-gray-600">
+                          <Calendar className="w-3 h-3" />
+                          Fim:{" "}
+                          {new Date(concurso.inscricoes.fim).toLocaleDateString(
+                            "pt-BR",
+                          )}
+                        </div>
+                      )}
+                      {concurso.provas?.data && (
+                        <div className="flex items-center gap-1 text-xs text-gray-600">
+                          <Calendar className="w-3 h-3" />
+                          Prova:{" "}
+                          {new Date(concurso.provas.data).toLocaleDateString(
+                            "pt-BR",
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )} */}
+
+                  {/* Locais */}
+                  {concurso.locais && concurso.locais.length > 0 && (
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {concurso.locais.slice(0, 3).map((local, index) => (
+                        <span
+                          key={index}
+                          className="flex items-center gap-1 text-xs bg-blue-50 text-blue-600 px-2 py-1 rounded-lg"
+                        >
+                          <MapPin className="w-3 h-3" />
+                          {local}
+                        </span>
+                      ))}
+                      {concurso.locais.length > 3 && (
+                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-lg">
+                          +{concurso.locais.length - 3} locais
+                        </span>
+                      )}
+                    </div>
+                  )}
 
                   {/* Stats Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-2 lg:gap-4">
@@ -520,9 +719,7 @@ export default function ConcursoDetalhePage() {
                     <div className="mt-4 lg:mt-6 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
                       <div className="flex items-center gap-2 text-xs lg:text-sm text-gray-500">
                         <Layers className="w-3 h-3 lg:w-4 lg:h-4" />
-                        <span className="font-medium">
-                          Vagas para as áreas:
-                        </span>
+                        <span className="font-medium">Áreas:</span>
                       </div>
                       <div className="flex flex-wrap gap-1.5 lg:gap-2">
                         {concurso.areas.map((area, index) => (
@@ -538,14 +735,16 @@ export default function ConcursoDetalhePage() {
                   )}
 
                   {/* Descrição do Concurso */}
-                  <div className="prose prose-sm lg:prose-lg max-w-none mt-4">
-                    <h2 className="text-2xl md:text-2xl font-black text-gray-900 mb-4 leading-tight">
-                      Sobre o concurso
-                    </h2>
-                    <p className="text-sm lg:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
-                      {concurso.descricao}
-                    </p>
-                  </div>
+                  {concurso.descricao && (
+                    <div className="prose prose-sm lg:prose-lg max-w-none mt-4">
+                      <h2 className="text-2xl md:text-2xl font-black text-gray-900 mb-4 leading-tight">
+                        Sobre o concurso
+                      </h2>
+                      <p className="text-sm lg:text-base text-gray-700 leading-relaxed whitespace-pre-wrap">
+                        {concurso.descricao}
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Right Column - Progress */}
@@ -619,7 +818,7 @@ export default function ConcursoDetalhePage() {
                           href={`/materia/${gerarSlug(
                             materias.find((m) => m.id === proximoTopico.materia)
                               ?.nome || "",
-                          )}/topico/${proximoTopico.topico}`}
+                          )}/topico/${proximoTopico.topico}?concurso=${concursoId}`}
                           className="w-full bg-orange-500 hover:bg-orange-600 text-white py-2.5 lg:py-3 px-3 lg:px-4 rounded-xl text-sm lg:text-base font-medium transition-all duration-300 flex items-center justify-center gap-2 shadow-lg shadow-orange-500/25"
                         >
                           <PlayCircle className="w-4 h-4 lg:w-5 lg:h-5" />
@@ -651,10 +850,40 @@ export default function ConcursoDetalhePage() {
               <BookOpen className="w-5 h-5 lg:w-6 lg:h-6 text-orange-500" />
               Conteúdo programático
             </h2>
+
+            {/* Seletor de Níveis - AGORA DENTRO DA ÁREA DE CONTEÚDO */}
+            {concurso.niveis && concurso.niveis.length > 1 && (
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                {concurso.niveis.map((item) => (
+                  <button
+                    key={item.nivel}
+                    onClick={() => handleNivelChange(item.nivel)}
+                    className={`px-4 py-2 rounded-xl font-medium text-xs lg:text-sm transition-all whitespace-nowrap flex items-center gap-1 ${
+                      nivelSelecionado === item.nivel
+                        ? "bg-orange-500 text-white shadow-lg shadow-orange-500/25"
+                        : "bg-white text-gray-600 hover:bg-orange-50 border border-gray-200"
+                    }`}
+                  >
+                    {getNivelIcone(item.nivel)}
+                    {formatarNivel(item.nivel)}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
-          {/* Lista de Matérias Modernizada */}
-          {materias.length > 0 ? (
+          {/* Loading indicator para a grade */}
+          {loadingGrade && (
+            <div className="flex items-center justify-center py-12">
+              <div className="relative">
+                <div className="absolute inset-0 rounded-full bg-orange-200/30 blur-xl animate-pulse" />
+                <Loader2 className="w-8 h-8 text-orange-500 animate-spin relative" />
+              </div>
+            </div>
+          )}
+
+          {/* Lista de Matérias */}
+          {!loadingGrade && materias.length > 0 ? (
             <div className="space-y-2 lg:space-y-3">
               {materias.map((materia) => {
                 const topicos = topicosPorMateria[materia.id] || [];
@@ -741,7 +970,7 @@ export default function ConcursoDetalhePage() {
                         >
                           {topicos.length > 0 ? (
                             <div className="divide-y divide-gray-100">
-                              {topicos.map((topico, index) => (
+                              {topicos.map((topico) => (
                                 <Link
                                   key={topico.id}
                                   href={`/materia/${gerarSlug(materia.nome)}/topico/${topico.id}?concurso=${concursoId}`}
@@ -824,9 +1053,6 @@ export default function ConcursoDetalhePage() {
                               <p className="text-sm lg:text-base text-gray-500 font-medium">
                                 Nenhum tópico cadastrado
                               </p>
-                              <p className="text-2xs lg:text-xs text-gray-400 mt-1">
-                                Esta matéria ainda não possui conteúdo
-                              </p>
                             </div>
                           )}
                         </motion.div>
@@ -837,18 +1063,19 @@ export default function ConcursoDetalhePage() {
               })}
             </div>
           ) : (
-            <div className="text-center py-12 lg:py-16 bg-white rounded-xl lg:rounded-2xl border border-gray-100">
-              <div className="w-16 h-16 lg:w-20 lg:h-20 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-3 lg:mb-4">
-                <BookOpen className="w-8 h-8 lg:w-10 lg:h-10 text-orange-300" />
+            !loadingGrade && (
+              <div className="text-center py-12 lg:py-16 bg-white rounded-xl lg:rounded-2xl border border-gray-100">
+                <div className="w-16 h-16 lg:w-20 lg:h-20 bg-orange-50 rounded-full flex items-center justify-center mx-auto mb-3 lg:mb-4">
+                  <BookOpen className="w-8 h-8 lg:w-10 lg:h-10 text-orange-300" />
+                </div>
+                <h3 className="text-base lg:text-lg font-semibold text-gray-900 mb-1 lg:mb-2">
+                  Nenhuma matéria cadastrada para este nível
+                </h3>
+                <p className="text-sm lg:text-base text-gray-500 max-w-md mx-auto px-4">
+                  Este nível ainda não possui matérias definidas.
+                </p>
               </div>
-              <h3 className="text-base lg:text-lg font-semibold text-gray-900 mb-1 lg:mb-2">
-                Nenhuma matéria cadastrada
-              </h3>
-              <p className="text-sm lg:text-base text-gray-500 max-w-md mx-auto px-4">
-                Este concurso ainda não possui matérias definidas. Volte em
-                breve para mais conteúdo.
-              </p>
-            </div>
+            )
           )}
         </div>
 

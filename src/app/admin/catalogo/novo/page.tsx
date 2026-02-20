@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import {
   collection,
   doc,
@@ -10,8 +11,26 @@ import {
   getDocs,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase/config";
-import { ChevronLeft, Save, Loader2, Plus, Trash2 } from "lucide-react";
-import { Lock, Unlock } from "lucide-react";
+import {
+  ChevronLeft,
+  Save,
+  Loader2,
+  Plus,
+  Trash2,
+  Lock,
+  Unlock,
+  BookOpen,
+  FileText,
+  Headphones,
+  Zap,
+  Tag,
+  Clock,
+  Sparkles,
+  Layers,
+  HelpCircle,
+  CheckCircle,
+  AlertCircle,
+} from "lucide-react";
 
 interface Materia {
   id: string;
@@ -51,7 +70,7 @@ export default function NovoConteudoPage() {
     nivel: "intermediario" as "iniciante" | "intermediario" | "avancado",
     tempoEstimado: 45,
     icone: "📚",
-    cor: "from-blue-500 to-blue-600",
+    cor: "from-purple-500 to-purple-600",
     introducao: "",
     topicos: [] as TopicoInterno[],
     exercicios: [] as Exercicio[],
@@ -206,17 +225,6 @@ export default function NovoConteudoPage() {
 
       const conteudoId = `${materiaSlug}-${tituloSlug}`;
 
-      console.log("📤 Enviando para API:", {
-        id: conteudoId,
-        materia: materiaSelecionada.nome,
-        materiaSlug,
-        titulo: formData.titulo,
-        introducaoLength: formData.introducao?.length,
-        topicos: formData.topicos.length,
-        exercicios: formData.exercicios.length,
-        flashcards: formData.flashcards.length,
-      });
-
       // 1. Salvar no Firebase
       await setDoc(doc(db, "catalogo", conteudoId), {
         id: conteudoId,
@@ -267,81 +275,108 @@ export default function NovoConteudoPage() {
 
   if (loadingMaterias) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 text-orange-500 animate-spin" />
+      <div className="min-h-[60vh] flex flex-col items-center justify-center">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+          className="w-16 h-16 border-4 border-purple-200 border-t-purple-600 rounded-full mb-4"
+        />
+        <p className="text-gray-500">Carregando...</p>
       </div>
     );
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <button
-        onClick={() => router.back()}
-        className="flex items-center gap-2 text-gray-600 hover:text-orange-600 transition mb-4"
-      >
-        <ChevronLeft className="w-5 h-5" />
-        <span>Voltar</span>
-      </button>
-
-      <h1 className="font-display text-3xl font-bold text-gray-900 mb-8">
-        Novo Conteúdo no Catálogo
-      </h1>
+    <div className="max-w-7xl mx-auto space-y-8">
+      {/* Header com gradiente preto/roxo */}
+      <div className="bg-gradient-to-r from-black to-purple-900 text-white rounded-2xl p-8 shadow-xl">
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="inline-flex items-center gap-2 bg-white/20 px-4 py-2 rounded-full mb-4">
+              <Sparkles className="w-4 h-4" />
+              <span className="text-sm font-medium">Novo Conteúdo</span>
+            </div>
+            <h1 className="text-4xl md:text-5xl font-black mb-2">
+              Adicionar ao Catálogo
+            </h1>
+            <p className="text-purple-200 text-lg max-w-2xl">
+              Crie um novo conteúdo educacional para a plataforma
+            </p>
+          </div>
+          <button
+            onClick={() => router.back()}
+            className="bg-white/10 hover:bg-white/20 cursor-pointer text-white p-3 rounded-xl transition flex items-center gap-2"
+          >
+            <ChevronLeft className="w-5 h-5" />
+            <span className="hidden sm:inline">Voltar</span>
+          </button>
+        </div>
+      </div>
 
       {/* Abas */}
-      <div className="flex gap-1 mb-6 border-b border-gray-200 overflow-x-auto">
+      <div className="bg-white rounded-2xl p-2 shadow-sm border border-gray-200 flex flex-wrap gap-1">
         <button
           onClick={() => setAbaAtiva("conteudo")}
-          className={`px-6 py-3 font-medium text-sm whitespace-nowrap transition ${
+          className={`flex-1 px-4 py-3 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 ${
             abaAtiva === "conteudo"
-              ? "text-orange-500 border-b-2 border-orange-500"
-              : "text-gray-500 hover:text-gray-700"
+              ? "bg-gradient-to-r from-black to-purple-900 text-white shadow-lg"
+              : "text-gray-600 hover:bg-gray-100"
           }`}
         >
-          📝 Conteúdo Principal
+          <BookOpen className="w-4 h-4" />
+          Conteúdo
         </button>
         <button
           onClick={() => setAbaAtiva("topicos")}
-          className={`px-6 py-3 font-medium text-sm whitespace-nowrap transition ${
+          className={`flex-1 px-4 py-3 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 ${
             abaAtiva === "topicos"
-              ? "text-orange-500 border-b-2 border-orange-500"
-              : "text-gray-500 hover:text-gray-700"
+              ? "bg-gradient-to-r from-black to-purple-900 text-white shadow-lg"
+              : "text-gray-600 hover:bg-gray-100"
           }`}
         >
-          📚 Tópicos Internos
+          <Layers className="w-4 h-4" />
+          Tópicos
         </button>
         <button
           onClick={() => setAbaAtiva("exercicios")}
-          className={`px-6 py-3 font-medium text-sm whitespace-nowrap transition ${
+          className={`flex-1 px-4 py-3 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 ${
             abaAtiva === "exercicios"
-              ? "text-orange-500 border-b-2 border-orange-500"
-              : "text-gray-500 hover:text-gray-700"
+              ? "bg-gradient-to-r from-black to-purple-900 text-white shadow-lg"
+              : "text-gray-600 hover:bg-gray-100"
           }`}
         >
-          ✍️ Exercícios
+          <HelpCircle className="w-4 h-4" />
+          Exercícios
         </button>
         <button
           onClick={() => setAbaAtiva("flashcards")}
-          className={`px-6 py-3 font-medium text-sm whitespace-nowrap transition ${
+          className={`flex-1 px-4 py-3 rounded-xl font-medium text-sm transition-all flex items-center justify-center gap-2 ${
             abaAtiva === "flashcards"
-              ? "text-orange-500 border-b-2 border-orange-500"
-              : "text-gray-500 hover:text-gray-700"
+              ? "bg-gradient-to-r from-black to-purple-900 text-white shadow-lg"
+              : "text-gray-600 hover:bg-gray-100"
           }`}
         >
-          🃏 Flashcards
+          <Zap className="w-4 h-4" />
+          Flashcards
         </button>
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Aba: Conteúdo Principal */}
         {abaAtiva === "conteudo" && (
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <h2 className="font-display font-bold text-gray-900 mb-4">
-              Informações Básicas
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200"
+          >
+            <h2 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-purple-600" />
+              Informações do Conteúdo
             </h2>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid md:grid-cols-2 gap-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Matéria *
                 </label>
                 <select
@@ -350,9 +385,9 @@ export default function NovoConteudoPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, materia: e.target.value })
                   }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
                 >
-                  <option value="">Selecione</option>
+                  <option value="">Selecione uma matéria</option>
                   {materias.map((m) => (
                     <option key={m.id} value={m.id}>
                       {m.icone} {m.nome}
@@ -362,7 +397,7 @@ export default function NovoConteudoPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Título *
                 </label>
                 <input
@@ -372,17 +407,17 @@ export default function NovoConteudoPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, titulo: e.target.value })
                   }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
                   placeholder="Ex: Uso da Crase"
                 />
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-3">
                   Tipo de Acesso
                 </label>
-                <div className="flex items-center gap-4 mt-2">
-                  <label className="flex items-center gap-2">
+                <div className="flex items-center gap-6">
+                  <label className="flex items-center gap-3 cursor-pointer">
                     <input
                       type="radio"
                       name="tipoAcesso"
@@ -390,12 +425,14 @@ export default function NovoConteudoPage() {
                       onChange={() =>
                         setFormData({ ...formData, isPreview: false })
                       }
-                      className="w-4 h-4 text-orange-500"
+                      className="w-4 h-4 text-purple-600 focus:ring-purple-500"
                     />
-                    <Lock className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm">Assinantes</span>
+                    <div className="flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-gray-500" />
+                      <span className="text-sm text-gray-700">Assinantes</span>
+                    </div>
                   </label>
-                  <label className="flex items-center gap-2">
+                  <label className="flex items-center gap-3 cursor-pointer">
                     <input
                       type="radio"
                       name="tipoAcesso"
@@ -403,16 +440,20 @@ export default function NovoConteudoPage() {
                       onChange={() =>
                         setFormData({ ...formData, isPreview: true })
                       }
-                      className="w-4 h-4 text-orange-500"
+                      className="w-4 h-4 text-purple-600 focus:ring-purple-500"
                     />
-                    <Unlock className="w-4 h-4 text-green-500" />
-                    <span className="text-sm">Grátis (Preview)</span>
+                    <div className="flex items-center gap-2">
+                      <Unlock className="w-4 h-4 text-green-600" />
+                      <span className="text-sm text-gray-700">
+                        Grátis (Preview)
+                      </span>
+                    </div>
                   </label>
                 </div>
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Descrição
                 </label>
                 <input
@@ -421,28 +462,31 @@ export default function NovoConteudoPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, descricao: e.target.value })
                   }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  placeholder="Breve descrição"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
+                  placeholder="Breve descrição do conteúdo"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tags (separadas por vírgula)
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tags
                 </label>
-                <input
-                  type="text"
-                  value={formData.tags}
-                  onChange={(e) =>
-                    setFormData({ ...formData, tags: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                  placeholder="gramatica, ortografia"
-                />
+                <div className="relative">
+                  <Tag className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="text"
+                    value={formData.tags}
+                    onChange={(e) =>
+                      setFormData({ ...formData, tags: e.target.value })
+                    }
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
+                    placeholder="gramatica, ortografia"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
                   Nível
                 </label>
                 <select
@@ -450,36 +494,40 @@ export default function NovoConteudoPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, nivel: e.target.value as any })
                   }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
                 >
-                  <option value="iniciante">Iniciante</option>
-                  <option value="intermediario">Intermediário</option>
-                  <option value="avancado">Avançado</option>
+                  <option value="iniciante">🌱 Iniciante</option>
+                  <option value="intermediario">📚 Intermediário</option>
+                  <option value="avancado">🔥 Avançado</option>
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Tempo (min)
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tempo Estimado
                 </label>
-                <input
-                  type="number"
-                  value={formData.tempoEstimado}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      tempoEstimado: parseInt(e.target.value),
-                    })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500"
-                />
+                <div className="relative">
+                  <Clock className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                  <input
+                    type="number"
+                    value={formData.tempoEstimado}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        tempoEstimado: parseInt(e.target.value),
+                      })
+                    }
+                    className="w-full pl-12 pr-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
+                    placeholder="45"
+                  />
+                </div>
               </div>
 
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  📄 Conteúdo HTML (principal)
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Conteúdo HTML
                 </label>
-                <p className="text-xs text-gray-500 mb-2">
+                <p className="text-xs text-gray-400 mb-3">
                   Cole aqui o HTML completo da página. Este será salvo como
                   arquivo .html separado.
                 </p>
@@ -489,25 +537,30 @@ export default function NovoConteudoPage() {
                     setFormData({ ...formData, introducao: e.target.value })
                   }
                   rows={15}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 font-mono text-sm"
-                  placeholder="<!DOCTYPE html>\n<html>\n<head>..."
+                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none font-mono text-sm bg-gray-50"
+                  placeholder="<!DOCTYPE html>\n<html>\n<head>\n  <title>Meu Conteúdo</title>\n</head>\n<body>\n  <h1>Olá, mundo!</h1>\n</body>\n</html>"
                 />
               </div>
             </div>
-          </div>
+          </motion.div>
         )}
 
         {/* Aba: Tópicos Internos */}
         {abaAtiva === "topicos" && (
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="font-display font-bold text-gray-900">
-                Tópicos do Conteúdo
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Layers className="w-5 h-5 text-purple-600" />
+                Tópicos Internos
               </h2>
               <button
                 type="button"
                 onClick={adicionarTopico}
-                className="flex items-center gap-2 text-orange-500 hover:text-orange-600"
+                className="px-4 py-2 bg-gradient-to-r from-black to-purple-900 text-white rounded-xl hover:shadow-lg transition flex items-center gap-2 text-sm"
               >
                 <Plus className="w-4 h-4" />
                 Adicionar Tópico
@@ -515,62 +568,94 @@ export default function NovoConteudoPage() {
             </div>
 
             {formData.topicos.length === 0 ? (
-              <p className="text-gray-400 text-center py-8">
-                Nenhum tópico interno adicionado
-              </p>
+              <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
+                <Layers className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">
+                  Nenhum tópico interno adicionado
+                </p>
+                <button
+                  type="button"
+                  onClick={adicionarTopico}
+                  className="mt-4 text-purple-600 hover:text-purple-700 font-medium text-sm flex items-center gap-1 mx-auto"
+                >
+                  <Plus className="w-4 h-4" />
+                  Adicionar primeiro tópico
+                </button>
+              </div>
             ) : (
               <div className="space-y-4">
                 {formData.topicos.map((topico, index) => (
                   <div
                     key={index}
-                    className="border border-gray-200 rounded-lg p-4"
+                    className="bg-gray-50 rounded-xl p-6 border border-gray-200"
                   >
-                    <div className="flex justify-between mb-3">
-                      <h3 className="font-medium">Tópico {index + 1}</h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-medium text-gray-900">
+                        Tópico {index + 1}
+                      </h3>
                       <button
                         type="button"
                         onClick={() => removerTopico(index)}
-                        className="text-red-500 hover:text-red-600"
+                        className="p-2 text-gray-400 hover:text-red-500 transition"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                    <input
-                      type="text"
-                      placeholder="Título do tópico"
-                      value={topico.titulo}
-                      onChange={(e) =>
-                        atualizarTopico(index, "titulo", e.target.value)
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-3"
-                    />
-                    <textarea
-                      placeholder="Conteúdo HTML"
-                      value={topico.html}
-                      onChange={(e) =>
-                        atualizarTopico(index, "html", e.target.value)
-                      }
-                      rows={4}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg font-mono text-sm"
-                    />
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Título do Tópico
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="Ex: Introdução ao tema"
+                          value={topico.titulo}
+                          onChange={(e) =>
+                            atualizarTopico(index, "titulo", e.target.value)
+                          }
+                          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Conteúdo HTML
+                        </label>
+                        <textarea
+                          placeholder="<p>Conteúdo do tópico...</p>"
+                          value={topico.html}
+                          onChange={(e) =>
+                            atualizarTopico(index, "html", e.target.value)
+                          }
+                          rows={4}
+                          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none font-mono text-sm bg-white"
+                        />
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </motion.div>
         )}
 
         {/* Aba: Exercícios */}
         {abaAtiva === "exercicios" && (
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="font-display font-bold text-gray-900">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <HelpCircle className="w-5 h-5 text-purple-600" />
                 Exercícios
               </h2>
               <button
                 type="button"
                 onClick={adicionarExercicio}
-                className="flex items-center gap-2 text-orange-500 hover:text-orange-600"
+                className="px-4 py-2 bg-gradient-to-r from-black to-purple-900 text-white rounded-xl hover:shadow-lg transition flex items-center gap-2 text-sm"
               >
                 <Plus className="w-4 h-4" />
                 Adicionar Exercício
@@ -578,89 +663,130 @@ export default function NovoConteudoPage() {
             </div>
 
             {formData.exercicios.length === 0 ? (
-              <p className="text-gray-400 text-center py-8">
-                Nenhum exercício adicionado
-              </p>
+              <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
+                <HelpCircle className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">Nenhum exercício adicionado</p>
+                <button
+                  type="button"
+                  onClick={adicionarExercicio}
+                  className="mt-4 text-purple-600 hover:text-purple-700 font-medium text-sm flex items-center gap-1 mx-auto"
+                >
+                  <Plus className="w-4 h-4" />
+                  Adicionar primeiro exercício
+                </button>
+              </div>
             ) : (
               <div className="space-y-6">
                 {formData.exercicios.map((ex, index) => (
                   <div
                     key={index}
-                    className="border border-gray-200 rounded-lg p-4"
+                    className="bg-gray-50 rounded-xl p-6 border border-gray-200"
                   >
-                    <div className="flex justify-between mb-3">
-                      <h3 className="font-medium">Exercício {index + 1}</h3>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-medium text-gray-900">
+                        Exercício {index + 1}
+                      </h3>
                       <button
                         type="button"
                         onClick={() => removerExercicio(index)}
-                        className="text-red-500 hover:text-red-600"
+                        className="p-2 text-gray-400 hover:text-red-500 transition"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
 
-                    <textarea
-                      placeholder="Pergunta"
-                      value={ex.pergunta}
-                      onChange={(e) =>
-                        atualizarExercicio(index, "pergunta", e.target.value)
-                      }
-                      rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-3"
-                    />
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Pergunta
+                        </label>
+                        <textarea
+                          placeholder="Digite a pergunta do exercício..."
+                          value={ex.pergunta}
+                          onChange={(e) =>
+                            atualizarExercicio(
+                              index,
+                              "pergunta",
+                              e.target.value,
+                            )
+                          }
+                          rows={2}
+                          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
+                        />
+                      </div>
 
-                    <div className="space-y-2 mb-3">
-                      {ex.alternativas.map((alt, i) => (
-                        <div key={i} className="flex gap-2 items-center">
-                          <input
-                            type="radio"
-                            name={`correta-${index}`}
-                            checked={ex.correta === i}
-                            onChange={() =>
-                              atualizarExercicio(index, "correta", i)
-                            }
-                            className="w-4 h-4 text-orange-500"
-                          />
-                          <input
-                            type="text"
-                            placeholder={`Alternativa ${String.fromCharCode(65 + i)}`}
-                            value={alt}
-                            onChange={(e) =>
-                              atualizarAlternativa(index, i, e.target.value)
-                            }
-                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg"
-                          />
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Alternativas
+                        </label>
+                        <div className="space-y-2">
+                          {ex.alternativas.map((alt, i) => (
+                            <div key={i} className="flex items-center gap-3">
+                              <input
+                                type="radio"
+                                name={`correta-${index}`}
+                                checked={ex.correta === i}
+                                onChange={() =>
+                                  atualizarExercicio(index, "correta", i)
+                                }
+                                className="w-4 h-4 text-purple-600 focus:ring-purple-500"
+                              />
+                              <input
+                                type="text"
+                                placeholder={`Alternativa ${String.fromCharCode(65 + i)}`}
+                                value={alt}
+                                onChange={(e) =>
+                                  atualizarAlternativa(index, i, e.target.value)
+                                }
+                                className="flex-1 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
+                              />
+                            </div>
+                          ))}
                         </div>
-                      ))}
-                    </div>
+                      </div>
 
-                    <textarea
-                      placeholder="Explicação"
-                      value={ex.explicacao}
-                      onChange={(e) =>
-                        atualizarExercicio(index, "explicacao", e.target.value)
-                      }
-                      rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    />
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Explicação
+                        </label>
+                        <textarea
+                          placeholder="Explique por que a resposta correta é essa..."
+                          value={ex.explicacao}
+                          onChange={(e) =>
+                            atualizarExercicio(
+                              index,
+                              "explicacao",
+                              e.target.value,
+                            )
+                          }
+                          rows={2}
+                          className="w-full px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none"
+                        />
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </motion.div>
         )}
 
         {/* Aba: Flashcards */}
         {abaAtiva === "flashcards" && (
-          <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="font-display font-bold text-gray-900">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white rounded-2xl p-8 shadow-lg border border-gray-200"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                <Zap className="w-5 h-5 text-purple-600" />
                 Flashcards
               </h2>
               <button
                 type="button"
                 onClick={adicionarFlashcard}
-                className="flex items-center gap-2 text-orange-500 hover:text-orange-600"
+                className="px-4 py-2 bg-gradient-to-r from-black to-purple-900 text-white rounded-xl hover:shadow-lg transition flex items-center gap-2 text-sm"
               >
                 <Plus className="w-4 h-4" />
                 Adicionar Flashcard
@@ -668,73 +794,98 @@ export default function NovoConteudoPage() {
             </div>
 
             {formData.flashcards.length === 0 ? (
-              <p className="text-gray-400 text-center py-8">
-                Nenhum flashcard adicionado
-              </p>
+              <div className="text-center py-12 bg-gray-50 rounded-xl border border-gray-200">
+                <Zap className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                <p className="text-gray-500">Nenhum flashcard adicionado</p>
+                <button
+                  type="button"
+                  onClick={adicionarFlashcard}
+                  className="mt-4 text-purple-600 hover:text-purple-700 font-medium text-sm flex items-center gap-1 mx-auto"
+                >
+                  <Plus className="w-4 h-4" />
+                  Adicionar primeiro flashcard
+                </button>
+              </div>
             ) : (
               <div className="grid md:grid-cols-2 gap-4">
                 {formData.flashcards.map((card, index) => (
                   <div
                     key={index}
-                    className="border border-gray-200 rounded-lg p-4"
+                    className="bg-gray-50 rounded-xl p-5 border border-gray-200"
                   >
-                    <div className="flex justify-between mb-3">
-                      <h3 className="font-medium">Card {index + 1}</h3>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-medium text-gray-900">
+                        Flashcard {index + 1}
+                      </h3>
                       <button
                         type="button"
                         onClick={() => removerFlashcard(index)}
-                        className="text-red-500 hover:text-red-600"
+                        className="p-1.5 text-gray-400 hover:text-red-500 transition"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
-                    <textarea
-                      placeholder="Frente (pergunta)"
-                      value={card.frente}
-                      onChange={(e) =>
-                        atualizarFlashcard(index, "frente", e.target.value)
-                      }
-                      rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg mb-2"
-                    />
-                    <textarea
-                      placeholder="Verso (resposta)"
-                      value={card.verso}
-                      onChange={(e) =>
-                        atualizarFlashcard(index, "verso", e.target.value)
-                      }
-                      rows={2}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg"
-                    />
+
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Frente (pergunta)
+                        </label>
+                        <textarea
+                          placeholder="O que é crase?"
+                          value={card.frente}
+                          onChange={(e) =>
+                            atualizarFlashcard(index, "frente", e.target.value)
+                          }
+                          rows={2}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Verso (resposta)
+                        </label>
+                        <textarea
+                          placeholder="Fusão da preposição 'a' com o artigo 'a'..."
+                          value={card.verso}
+                          onChange={(e) =>
+                            atualizarFlashcard(index, "verso", e.target.value)
+                          }
+                          rows={2}
+                          className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all outline-none text-sm"
+                        />
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
-          </div>
+          </motion.div>
         )}
 
-        {/* Botões */}
-        <div className="flex justify-end gap-4">
+        {/* Botões de ação */}
+        <div className="flex justify-end gap-4 pt-4">
           <button
             type="button"
             onClick={() => router.back()}
-            className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition"
+            className="px-6 py-3 cursor-pointer border border-gray-300 rounded-xl hover:bg-gray-100 transition font-medium"
           >
             Cancelar
           </button>
           <button
             type="submit"
             disabled={loading}
-            className="px-4 py-2 bg-gradient-to-r from-orange-500 to-orange-600 text-white rounded-lg flex items-center gap-2 disabled:opacity-50"
+            className="px-6 py-3 cursor-pointer bg-gradient-to-r from-black to-purple-900 text-white rounded-xl hover:shadow-lg transition disabled:opacity-50 flex items-center gap-2 font-medium"
           >
             {loading ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin" />
+                <Loader2 className="w-5 h-5 animate-spin" />
                 Salvando...
               </>
             ) : (
               <>
-                <Save className="w-4 h-4" />
+                <Save className="w-5 h-5" />
                 Salvar no Catálogo
               </>
             )}
